@@ -84,6 +84,10 @@ namespace nomoko {
       void exportToPLY(const std::string& plyFile);
       void exportAllClusters(const std::string&);
 
+      std::vector<std::vector<int> > getClusters () {
+        return finalClusters;
+      }
+
     private:
       std::vector<Point> points;
       std::vector<Point> origPoints;
