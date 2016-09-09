@@ -41,7 +41,7 @@
 #include <algorithm>
 
 #include <Eigen/Core>
-#include <types.h>
+#include "types.h"
 
 namespace nomoko {
   class Domset{
