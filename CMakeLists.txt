@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(dominantClustering)
 add_definitions("-std=c++11")
-include_directories (${CMAKE_SOURCE_DIR})
 
 OPTION (USE_OpenMP "Use OpenMP" ON)
 IF(USE_OpenMP)
@@ -21,8 +20,5 @@ else()
   message(FATAL_ERROR "Can't find Eigen packages")
 endif()
 
-#include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${dominantClustering_SOURCE_DIR})
 add_library(domset domset.cc domset.h types.h)
-
-add_executable(domsetInterface main_domsetInterface.cc domsetInterface.h)
-target_link_libraries(domsetInterface domset)
