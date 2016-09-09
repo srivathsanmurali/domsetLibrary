@@ -10,7 +10,7 @@ IF(USE_OpenMP)
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   else()
-    message ("Cant find openmp library")
+    message (FATAL_ERROR "Cant find openmp library")
   ENDIF()
 ENDIF()
 
