@@ -1,0 +1,28 @@
+cmake_minimum_required(VERSION 2.8)
+project(dominantClustering)
+add_definitions("-std=c++11")
+include_directories (${CMAKE_SOURCE_DIR})
+
+OPTION (USE_OpenMP "Use OpenMP" ON)
+IF(USE_OpenMP)
+  FIND_PACKAGE(OpenMP)
+  IF(OPENMP_FOUND)
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  else()
+    message ("Cant find openmp library")
+  ENDIF()
+ENDIF()
+
+find_package(Eigen3 3.1.0)
+if(EIGEN3_FOUND) 
+  include_directories(${EIGEN3_INCLUDE_DIR})
+else()
+  message(FATAL_ERROR "Can't find Eigen packages")
+endif()
+
+#include_directories(${CMAKE_SOURCE_DIR})
+add_library(domset domset.cc domset.h types.h)
+
+add_executable(domsetInterface main_domsetInterface.cc domsetInterface.h)
+target_link_libraries(domsetInterface domset)
