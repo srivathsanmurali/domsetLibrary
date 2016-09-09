@@ -10,6 +10,7 @@
  *            .__________/
  *
  *              nomoko AG
+ *          www.nomoko.camera
  *
  *        Röschibachstrasse 24
  *           CH-8037 Zurich
@@ -22,9 +23,7 @@
  *              introduced in "http://www.vision.ee.ethz.ch/~rhayko
  *              /paper/3dv2014_mauro_joint_selection_clustering.pdf"
  * @author      Srivathsan Murali<srivathsan@nomoko.camera>
- * @date        2016-09-01 17:10
  * @copyright   MIT
- * @remarks     In development
  */
 // Chuck Norris programs do not accept input.
 

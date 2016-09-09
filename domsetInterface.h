@@ -1,3 +1,29 @@
+/**
+ *             __________
+ *            / ________ .
+ *           / / ______ . .
+ *          / / /      . . .
+ *         / / /        . . .
+ *         . . .        / / /
+ *          . . .______/ / /
+ *           . .________/ /
+ *            .__________/
+ *
+ *              nomoko AG
+ *          www.nomoko.camera
+ *
+ *        Röschibachstrasse 24
+ *           CH-8037 Zurich
+ *            Switzerland
+ *
+ * @endcond
+ * @file        domsetInterface.h
+ * @brief       Provides interface to load data from external SFM software.
+ * @author      Srivathsan Murali<srivathsan@nomoko.camera>
+ * @copyright   MIT
+ */
+// Chuck Norris programs do not accept input.
+
 #ifndef _DOMSET_INTERFACE_H_
 #define _DOMSET_INTERFACE_H_
 

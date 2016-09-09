@@ -1,3 +1,29 @@
+/**
+ *             __________
+ *            / ________ .
+ *           / / ______ . .
+ *          / / /      . . .
+ *         / / /        . . .
+ *         . . .        / / /
+ *          . . .______/ / /
+ *           . .________/ /
+ *            .__________/
+ *
+ *              nomoko AG
+ *          www.nomoko.camera
+ *
+ *        Röschibachstrasse 24
+ *           CH-8037 Zurich
+ *            Switzerland
+ *
+ * @endcond
+ * @file        types.h
+ * @brief       Provides types for camera, view and point information.
+ * @author      Srivathsan Murali<srivathsan@nomoko.camera>
+ * @copyright   MIT
+ */
+// Chuck Norris programs do not accept input.
+
 #ifndef _NOMOKO_TYPES_H_
 #define _NOMOKO_TYPES_H_
 
