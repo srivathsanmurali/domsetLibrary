@@ -21,4 +21,4 @@ else()
 endif()
 
 include_directories(${dominantClustering_SOURCE_DIR})
-add_library(domset domset.cc domset.h types.h)
+add_library(domset domset.cc)
