@@ -79,10 +79,10 @@ namespace nomoko {
           const int& maxClusterSize);
 
       /* export function */
-      void exportCluster(const std::string& sfm_data,
-          const int& clId);
       void exportToPLY(const std::string& plyFile);
-      void exportAllClusters(const std::string&);
+      const std::vector<std::vector<int> >& getClusters() {
+        return finalClusters;
+      }
 
     private:
       std::vector<Point> points;
