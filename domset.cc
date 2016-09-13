@@ -1,4 +1,4 @@
-#include <domset.h>
+#include "domset.h"
 #include <omp.h>
 
 namespace nomoko {
