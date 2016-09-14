@@ -57,8 +57,6 @@ namespace nomoko {
       float getDistanceMedian(std::map<int,int> &);
       float computeViewDistance(const int&, const int&, const float&);
 
-      // AP clustering
-      void computeClustersAP(std::map<int,int>&, std::vector<std::vector<int> >&);
       void computeInformation();
       void voxelGridFilter(const float&, const float&, const float&);
 
@@ -75,6 +73,12 @@ namespace nomoko {
         computeInformation();
       }
 
+      // AP clustering
+      void computeClustersAP(std::map<int,int>&, std::vector<std::vector<int> >&);
+
+      void clusterViews(std::map<int, int>& xId2vId, const int& minClustersize,
+          const int& maxClusterSize);
+
       void clusterViews(const int& minClustersize,
           const int& maxClusterSize);
 
@@ -83,6 +87,13 @@ namespace nomoko {
       const std::vector<std::vector<int> >& getClusters() {
         return finalClusters;
       }
+
+      void setClusters(std::vector<std::vector<int> > clusters) {
+        finalClusters.clear();
+        finalClusters.swap(clusters);
+      }
+
+      void printClusters();
 
     private:
       std::vector<Point> points;

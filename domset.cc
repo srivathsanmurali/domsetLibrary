@@ -411,6 +411,19 @@ namespace nomoko {
       }
     }
 
+    void Domset::clusterViews(std::map<int,int>& xId2vId, const int& minClusterSize,
+          const int& maxClusterSize) {
+      std::cout << "[ Clustering Views ] "<< std::endl;
+      const int numC = views.size();
+      kMinClusterSize = minClusterSize;
+      kMaxClusterSize = maxClusterSize;
+
+      std::vector<std::vector<int> > clusters;
+      computeClustersAP(xId2vId, clusters);
+
+      finalClusters.swap(clusters);
+    }
+
     void Domset::clusterViews(
         const int& minClusterSize, const int& maxClusterSize){
       std::cout << "[ Clustering Views ] "<< std::endl;
@@ -425,21 +438,22 @@ namespace nomoko {
       std::vector<std::vector<int> > clusters;
       computeClustersAP(xId2vId, clusters);
 
+      finalClusters.swap(clusters);
+    }
+
+    void Domset::printClusters() {
       std::stringstream ss;
       ss << "Clusters : \n";
-      for(const auto cl : clusters){
+      for(const auto cl : finalClusters){
         ss << cl.size() << " : ";
         for(const auto id : cl) {
           ss << id << " ";
         }
         ss << "\n\n";
       }
-      std::cout << "Number of clusters = " << clusters.size() << std::endl;
+      std::cout << "Number of clusters = " << finalClusters.size() << std::endl;
       std::cout << ss.str();
-
-      finalClusters.swap(clusters);
     }
-
     void Domset::exportToPLY(const std::string& plyFilename) {
       std::stringstream plys;
       plys    << "ply\n"
