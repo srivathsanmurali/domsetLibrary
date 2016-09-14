@@ -454,7 +454,7 @@ namespace nomoko {
       std::cout << "Number of clusters = " << finalClusters.size() << std::endl;
       std::cout << ss.str();
     }
-    void Domset::exportToPLY(const std::string& plyFilename) {
+    void Domset::exportToPLY(const std::string& plyFilename, bool exportPoints) {
       std::stringstream plys;
       plys    << "ply\n"
         << "format ascii 1.0\n";
@@ -462,16 +462,19 @@ namespace nomoko {
       int totalViews = 0;
       for(const auto cl : finalClusters)
         totalViews += cl.size();
-
       const int numPts = origPoints.size();
-      plys    << "element vertex " << totalViews + numPts << std::endl
-        << "property float x\n"
-        << "property float y\n"
-        << "property float z\n"
-        << "property uchar red\n"
-        << "property uchar green\n"
-        << "property uchar blue\n"
-        << "end_header\n";
+
+      int totalPoints = totalViews;
+      if (exportPoints) totalPoints += numPts;
+      plys    << "element vertex "
+              << totalPoints << std::endl
+              << "property float x\n"
+              << "property float y\n"
+              << "property float z\n"
+              << "property uchar red\n"
+              << "property uchar green\n"
+              << "property uchar blue\n"
+              << "end_header\n";
 
       for(const auto cl : finalClusters) {
         uint red, green, blue;
@@ -485,11 +488,13 @@ namespace nomoko {
         }
       }
 
-      for(const auto pt : origPoints) {
-        Eigen::Vector3f pos = pt.pos.transpose();
+      if (exportPoints) {
+        for(const auto pt : origPoints) {
+          Eigen::Vector3f pos = pt.pos.transpose();
 
-        plys << pos(0) << " " << pos(1) << " " << pos(2)
-          << " 255 255 255" << std::endl;
+          plys << pos(0) << " " << pos(1) << " " << pos(2)
+            << " 255 255 255" << std::endl;
+        }
       }
 
       std::ofstream plyFile (plyFilename);
