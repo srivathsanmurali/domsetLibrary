@@ -96,6 +96,10 @@ namespace nomoko {
 
       void printClusters();
 
+      std::vector<std::vector<int> > getClusters () {
+        return finalClusters;
+      }
+
     private:
       std::vector<Point> points;
       std::vector<Point> origPoints;

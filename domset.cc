@@ -239,7 +239,6 @@ namespace nomoko {
       A.setConstant(0);
 
       for(int m=0; m<kNumIter; m++) {
-
         //update responsibility
 #pragma omp parallel for collapse(2)
         for(int i=0; i<numX; i++) {
