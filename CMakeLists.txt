@@ -13,7 +13,7 @@ IF(USE_OpenMP)
   ENDIF()
 ENDIF()
 
-find_package(Eigen3 3.1.0)
+find_package(Eigen3)
 if(EIGEN3_FOUND) 
   include_directories(${EIGEN3_INCLUDE_DIR})
 else()
