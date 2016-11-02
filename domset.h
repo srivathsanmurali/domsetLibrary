@@ -71,6 +71,7 @@ namespace nomoko {
 
       // normalizing point distances
       void normalizePointCloud();
+      void deNormalizePointCloud();
 
     public:
       /* cant read from file need to suply data */
@@ -112,8 +113,6 @@ namespace nomoko {
       std::vector<Point> origPoints;
       std::vector<Camera> cameras;
       std::vector<View> views;
-      Point minPt;
-      Point maxPt;
 
       Eigen::MatrixXf viewDists;
 
@@ -131,6 +130,8 @@ namespace nomoko {
 
       // scale normalization
       float normScale;
+      Point normMin;
+      Point normMax;
 
       // voxel grid stuff
       const float kVoxelSize = 0.1f;

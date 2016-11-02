@@ -44,14 +44,32 @@ namespace nomoko {
     std::cerr << "Normalization Scale = " << normScale << std::endl;
 
     // normalizing the distances on points
+    #pragma omp parallel for
     for (size_t i =0; i < numPoints; i++) {
       points[i].pos = points[i].pos * normScale;
     }
 
     // normalizing the camera center positions
     const size_t numViews(views.size());
+    #pragma omp parallel for
     for (size_t i = 0; i < numViews; i++) {
       views[i].trans = views[i].trans * normScale;
+    }
+  }
+
+  void Domset::deNormalizePointCloud() {
+    const size_t numPoints (points.size());
+    #pragma omp parallel for
+    // denormalizing points
+    for (size_t i =0; i < numPoints; i++) {
+      points[i].pos = points[i].pos / normScale;
+    }
+
+    // denormalizing camera centers
+    const size_t numViews(views.size());
+    #pragma omp parallel for
+    for (size_t i = 0; i < numViews; i++) {
+      views[i].trans = views[i].trans / normScale;
     }
   }
 
@@ -61,6 +79,8 @@ namespace nomoko {
       exit(0);
     }
 
+    Point minPt;
+    Point maxPt;
     const size_t numP = points.size();
     // finding the min and max values for the 3 dimensions
     const float mi = std::numeric_limits<float>::min();
@@ -467,6 +487,7 @@ namespace nomoko {
       std::vector<std::vector<size_t> > clusters;
       computeClustersAP(xId2vId, clusters);
 
+      deNormalizePointCloud();
       finalClusters.swap(clusters);
     }
 
@@ -484,6 +505,7 @@ namespace nomoko {
       std::vector<std::vector<size_t> > clusters;
       computeClustersAP(xId2vId, clusters);
 
+      deNormalizePointCloud();
       finalClusters.swap(clusters);
     }
 
