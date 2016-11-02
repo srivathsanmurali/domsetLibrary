@@ -143,17 +143,17 @@ namespace nomoko {
   }
   float Domset::getDistanceMedian(std::map<int,int> & xId2vId) {
     std::cout << "Finding Distance Median\n";
-    const int numC = xId2vId.size();
+    const size_t numC = xId2vId.size();
     if(numC == 0) {
       std::cerr << "No Views initialized \n";
       exit(0);
     }
 
-    std::vector<float> dists;
+    std::vector<float> dists(numC*numC);
     // float totalDist = 0;
-    for(int i = 0; i < numC; i++) {
+    for(size_t i = 0; i < numC; i++) {
       const auto v1 = xId2vId[i];
-      for(int j = 0; j < numC; j++ ) {
+      for(size_t j = 0; j < numC; j++ ) {
         const auto v2 = xId2vId[j];
         dists.push_back(viewDists(v1,v2));
         // totalDist += viewDists(v1,v2);
@@ -166,17 +166,17 @@ namespace nomoko {
 
   void Domset::getAllDistances() {
     std::cout << "Finding View Distances\n";
-    const int numC = views.size();
+    const size_t numC = views.size();
     if(numC == 0) {
       std::cerr << "No Views initialized \n";
       exit(0);
     }
     viewDists.resize(numC, numC);
-    for(int i = 0; i < numC; i++) {
+    for(size_t i = 0; i < numC; i++) {
       const auto v1 = views[i];
-      for(int j = 0; j < numC; j++ ) {
+      for(size_t j = 0; j < numC; j++ ) {
         const auto v2 = views[j];
-        float dist = (v1.trans - v2.trans).norm();
+        const float dist = (v1.trans - v2.trans).norm();
         viewDists(i,j) = dist;
       }
     }
@@ -184,30 +184,27 @@ namespace nomoko {
   void Domset::findCommonPoints(const View& v1, const View& v2,
       std::vector<int>& commonPoints){
     commonPoints.clear();
-    const int numVP1 = v1.viewPoints.size();
-    const int numVP2 = v2.viewPoints.size();
+    const size_t numVP1 = v1.viewPoints.size();
+    const size_t numVP2 = v2.viewPoints.size();
+    const size_t minNum = std::min(numVP1, numVP2);
 
-#pragma omp parallel for collapse(2)
-    for(int i =0; i <numVP1; i++) {
-      for(int j = 0; j < numVP2; j++){
-        const int vId1 = v1.viewPoints[i];
-        const auto vId2 = v2.viewPoints[j];
-        if(vId1 == vId2) {
-#pragma omp critical(updateCommonPoints)
-          commonPoints.push_back(vId2);
-        }
-      }
-    }
+    //std::sort(v1.viewPoints.begin(), v1.viewPoints.end());
+    //std::sort(v2.viewPoints.begin(), v2.viewPoints.end());
+    commonPoints.resize(minNum);
+
+    auto it = std::set_intersection(v1.viewPoints.begin(), v1.viewPoints.end(),
+      v2.viewPoints.begin(), v2.viewPoints.end(), commonPoints.begin());
+    commonPoints.resize(it - commonPoints.begin());
   } // findCommonPoints
 
   float Domset::computeViewSimilaity(const View& v1, const View& v2) {
     std::vector<int> commonPoints;
     findCommonPoints(v1, v2, commonPoints);
-    const int numCP = commonPoints.size();
+    const size_t numCP = commonPoints.size();
 
     float w =0;
-#pragma omp parallel for
-    for( int p=0; p < numCP; p++){
+    #pragma omp parallel for
+    for( size_t p=0; p < numCP; p++){
       const auto pId = commonPoints[p];
       //for( const auto pId : commonPoints ){
       Eigen::Vector3f c1 = v1.trans - points[pId].pos;
@@ -220,13 +217,13 @@ namespace nomoko {
 #pragma omp atomic
       w += expAngle;
     }
-    float ans = w / numCP;
+    const float ans = w / numCP;
     return (ans != ans)? 0 : ans;
     } // computeViewSimilaity
 
     void Domset::computeClustersAP(std::map<int, int>& xId2vId,
         std::vector<std::vector<int> >& clusters) {
-      const int numX = xId2vId.size();
+      const size_t numX = xId2vId.size();
       if(numX == 0) {
         std::cout << "Invalid map size\n";
         exit(0);
@@ -238,19 +235,19 @@ namespace nomoko {
       Eigen::MatrixXf A(numX, numX);
       A.setConstant(0);
 
-      for(int m=0; m<kNumIter; m++) {
+      for(size_t m=0; m<kNumIter; m++) {
         //update responsibility
 #pragma omp parallel for collapse(2)
-        for(int i=0; i<numX; i++) {
-          for(int k=0; k<numX; k++) {
+        for(size_t i =0; i<numX; i++) {
+          for(size_t k=0; k<numX; k++) {
             float max1 = std::numeric_limits<float>::min();
             float max2 = std::numeric_limits<float>::min();
 
-            for(int kk=0; kk<k; kk++) {
+            for(size_t kk=0; kk<k; kk++) {
               if(S(i,kk) +  A(i,kk) >max1)
                 max1 = S(i,kk) +A(i,kk);
             }
-            for(int kk=k+1; kk<numX; kk++) {
+            for(size_t kk=k+1; kk<numX; kk++) {
               if(S(i,kk) +A(i,kk) >max2)
                 max2 = S(i,kk) +A(i,kk);
             }
@@ -261,50 +258,50 @@ namespace nomoko {
 
         //update availability
 #pragma omp parallel for collapse(2)
-        for(int i=0; i<numX; i++) {
-          for(int k=0; k<numX; k++) {
+        for(size_t i=0; i<numX; i++) {
+          for(size_t k=0; k<numX; k++) {
             if(i==k) continue;
-            const int maxik = std::max(i, k);
-            const int minik = std::min(i, k);
+            const size_t maxik = std::max(i, k);
+            const size_t minik = std::min(i, k);
             float sum1 = 0.0f;
             float sum2 = 0.0f;
             float sum3 = 0.0f;
             float r1, r2, r3;
-            for(int ii=0; ii<minik; ii++) {
+            for(size_t ii=0; ii<minik; ii++) {
               r1 = R(ii,k);
               //sum1 += std::max(0.0f, r1);
               if(r1 > 0.0f)
                 sum1 += r1;
             }
-            for(int ii=minik+1; ii<maxik; ii++) {
+            for(size_t ii=minik+1; ii<maxik; ii++) {
               r2 = R(ii,k);
               // sum2 += std::max(0.0f, r2);
               if(r2 > 0.0f)
                 sum2 += r2;
             }
-            for(int ii=maxik+1; ii<numX; ii++) {
+            for(size_t ii=maxik+1; ii<numX; ii++) {
               r3 = R(ii,k);
               // sum3 += std::max(0.0f, r3);
               if(r3 > 0.0f)
                 sum3 += r3;
             }
-            float r = R(k,k) + sum1 + sum2 + sum3;
+            const float r = R(k,k) + sum1 + sum2 + sum3;
             A(i,k) = (1-lambda)*std::min(0.0f, r) + lambda*A(i,k);
           }
         }
       }
 #pragma omp parallel for
-      for(int i=0; i<numX; i++) {
+      for(size_t i =0; i<numX; i++) {
         float sum1 = 0.0f;
         float sum2 = 0.0f;
         float r1, r2;
-        for(int ii=0; ii<i; ii++) {
+        for(size_t ii=0; ii<i; ii++) {
           r1 = R(ii,i);
           //sum1 += std::max(0.0f, r1);
           if(r1 > 0.0f)
             sum1 += r1;
         }
-        for(int ii=i+1; ii<numX; ii++) {
+        for(size_t ii=i+1; ii<numX; ii++) {
           r2 = R(ii,i);
           //sum2 += std::max(0.0f, r2);
           if(r2 > 0.0f)
@@ -318,12 +315,12 @@ namespace nomoko {
       E = R + A;
 
       // getting initial clusters
-      std::set<int> centers;
-      std::map<int, std::vector<int>> clMap;
+      std::set<size_t > centers;
+      std::map<size_t, std::vector<int>> clMap;
       int idxForI = 0;
-      for(int i=0; i<numX; i++) {
+      for(size_t i=0; i<numX; i++) {
         float maxSim = std::numeric_limits<float>::min();
-        for(int j=0; j<numX; j++) {
+        for(size_t j=0; j<numX; j++) {
           if (E(i,j)>maxSim) {
             maxSim = E(i,j);
             idxForI = j;
@@ -335,7 +332,7 @@ namespace nomoko {
       for(auto const c : centers)
         clMap[c] = std::vector<int>();
 
-      for(int i = 0; i < numX; i++ ) {
+      for(size_t i = 0; i < numX; i++ ) {
         float maxSim = std::numeric_limits<float>::min();
         for(auto const c : centers) {
           if( S(i,c) > maxSim){
