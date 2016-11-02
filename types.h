@@ -28,7 +28,7 @@
 #define _NOMOKO_TYPES_H_
 
 namespace nomoko {
-  /* breif:
+  /* brief:
      Contains the camera parameters
      currently contains only a intrinsic matrix for a pinhole camera
      */
@@ -38,7 +38,7 @@ namespace nomoko {
     unsigned int height;
   }; // struct Camera
 
-  /* breif:
+  /* brief:
      Contains the information for each view;
      rot       -> Rotation matrix for the pose
      trans     -> Translation vector for the pose
@@ -53,7 +53,7 @@ namespace nomoko {
     std::vector<unsigned int> viewPoints;
   }; // struct View
 
-  /* breif:
+  /* brief:
      Contains the information for each point in the sparse point cloud
      pos       -> 3D position of the point
      color     -> RGB values for the point
