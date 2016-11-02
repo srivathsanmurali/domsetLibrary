@@ -19,20 +19,40 @@ namespace nomoko {
     index.buildIndex();
 
     const size_t numResults(1);
-    size_t ret_index;
-    float out_dist_sqr;
-    KNNResultSet<float> resultSet(numResults);
-    resultSet.init(&ret_index, &out_dist_sqr);
-
     const size_t numPoints (points.size());
     float totalDist = 0;
-    for (const auto & p : points) {
+    #pragma omp parallel for
+    for (size_t i =0; i < numPoints; i++) {
+      const Point & p = points[i];
       float queryPt[3] = {p.pos(0), p.pos(1), p.pos(2)};
-      index.findNeighbors(resultSet, &queryPt[0], SearchParams(10));
-      totalDist += out_dist_sqr;
+
+      std::vector<size_t> ret_index(2);
+      std::vector<float> out_dist_sqr(2);
+      index.knnSearch(queryPt,2, &ret_index[0], &out_dist_sqr[0]);
+
+      #pragma omp critical(TotalDistanceUpdate)
+      {
+        totalDist += out_dist_sqr[1];
+      }
     }
-    normScale = std::abs(out_dist_sqr/numPoints);
-    std::cerr << "Scale = " << normScale << std::endl;
+
+    // calculation the normalization scale
+    const float avgDist = totalDist/numPoints;
+    std::cerr << "Total distance = " << totalDist<< std::endl;
+    std::cerr << "Avg distance = " << avgDist << std::endl;
+    normScale = 1/avgDist;
+    std::cerr << "Normalization Scale = " << normScale << std::endl;
+
+    // normalizing the distances on points
+    for (size_t i =0; i < numPoints; i++) {
+      points[i].pos = points[i].pos * normScale;
+    }
+
+    // normalizing the camera center positions
+    const size_t numViews(views.size());
+    for (size_t i = 0; i < numViews; i++) {
+      views[i].trans = views[i].trans * normScale;
+    }
   }
 
   void Domset::voxelGridFilter(const float& sizeX, const float& sizeY, const float& sizeZ) {
