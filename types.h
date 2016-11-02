@@ -48,9 +48,9 @@ namespace nomoko {
   struct View {
     Eigen::Matrix3f rot;
     Eigen::Vector3f trans;
-    unsigned int cameraId;
+    size_t cameraId;
     std::string filename;
-    std::vector<unsigned int> viewPoints;
+    std::vector<size_t> viewPoints;
   }; // struct View
 
   /* brief:
@@ -61,7 +61,7 @@ namespace nomoko {
      */
   struct Point {
     Eigen::Vector3f pos;
-    std::vector<unsigned int> viewList;
+    std::vector<size_t> viewList;
   };
 } // namespace nomoko
 #endif // _NOMOKO_TYPES_H_

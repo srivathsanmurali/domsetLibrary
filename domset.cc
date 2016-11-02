@@ -3,8 +3,36 @@
 
 namespace nomoko {
   void Domset::computeInformation() {
+    normalizePointCloud();
     voxelGridFilter(kVoxelSize, kVoxelSize, kVoxelSize);
     getAllDistances();
+  }
+
+  void Domset::normalizePointCloud() {
+    // construct a kd-tree index:
+    typedef KDTreeSingleIndexAdaptor<
+      L2_Simple_Adaptor<float, Domset> ,
+      Domset,
+      3 /* dim */> my_kd_tree_t;
+
+    my_kd_tree_t index(3, *this, KDTreeSingleIndexAdaptorParams(10));
+    index.buildIndex();
+
+    const size_t numResults(1);
+    size_t ret_index;
+    float out_dist_sqr;
+    KNNResultSet<float> resultSet(numResults);
+    resultSet.init(&ret_index, &out_dist_sqr);
+
+    const size_t numPoints (points.size());
+    float totalDist = 0;
+    for (const auto & p : points) {
+      float queryPt[3] = {p.pos(0), p.pos(1), p.pos(2)};
+      index.findNeighbors(resultSet, &queryPt[0], SearchParams(10));
+      totalDist += out_dist_sqr;
+    }
+    normScale = std::abs(out_dist_sqr/numPoints);
+    std::cerr << "Scale = " << normScale << std::endl;
   }
 
   void Domset::voxelGridFilter(const float& sizeX, const float& sizeY, const float& sizeZ) {
@@ -13,14 +41,14 @@ namespace nomoko {
       exit(0);
     }
 
-    const unsigned int numP = points.size();
+    const size_t numP = points.size();
     // finding the min and max values for the 3 dimensions
     const float mi = std::numeric_limits<float>::min();
     const float ma = std::numeric_limits<float>::max();
     minPt.pos << ma, ma, ma;
     maxPt.pos << mi, mi, mi;
 
-    for(int p = 0; p < numP; p++) {
+    for(size_t p = 0; p < numP; p++) {
       const Point newSP = points[p];
       if(newSP.pos(0) < minPt.pos(0)) minPt.pos(0) = newSP.pos(0);
       if(newSP.pos(1) < minPt.pos(1)) minPt.pos(1) = newSP.pos(1);
@@ -31,9 +59,9 @@ namespace nomoko {
     }
 
     // finding the number of voxels reqired
-    unsigned int numVoxelX = static_cast<int>(ceil(maxPt.pos(0) - minPt.pos(0))/sizeX);
-    unsigned int numVoxelY = static_cast<int>(ceil(maxPt.pos(1) - minPt.pos(1))/sizeY);
-    unsigned int numVoxelZ = static_cast<int>(ceil(maxPt.pos(2) - minPt.pos(2))/sizeZ);
+    size_t numVoxelX = static_cast<size_t>(ceil(maxPt.pos(0) - minPt.pos(0))/sizeX);
+    size_t numVoxelY = static_cast<size_t>(ceil(maxPt.pos(1) - minPt.pos(1))/sizeY);
+    size_t numVoxelZ = static_cast<size_t>(ceil(maxPt.pos(2) - minPt.pos(2))/sizeZ);
     std::cout << "Max = "<<maxPt.pos.transpose() << std::endl;
     std::cout << "Min = "<<minPt.pos.transpose() << std::endl;
     std::cout << "Max - Min = "<<(maxPt.pos - minPt.pos).transpose() << std::endl;
@@ -45,40 +73,41 @@ namespace nomoko {
     std::cout << "Number Voxel Z = "<<numVoxelZ << std::endl;
 
     /* adding points to the voxels */
-    std::map<unsigned int, std::vector<unsigned int> > voxels;
-    std::vector<unsigned int> voxelIds;
-#pragma omp parallel for
-    for(unsigned int p = 0; p < numP; p++) {
+    std::map<size_t, std::vector<size_t> > voxels;
+    std::vector<size_t> voxelIds;
+    #pragma omp parallel for
+    for(size_t p = 0; p < numP; p++) {
       const Point pt = points[p];
-      const unsigned int x = static_cast<int>(floor(pt.pos(0) - minPt.pos(0))/sizeX);
-      const unsigned int y = static_cast<int>(floor(pt.pos(1) - minPt.pos(1))/sizeY);
-      const unsigned int z = static_cast<int>(floor(pt.pos(2) - minPt.pos(2))/sizeZ);
-      const unsigned int id = (z * numVoxelZ) + (y * numVoxelY) + x;
-#pragma omp critical(voxelGridUpdate)
+      const size_t x = static_cast<size_t>(floor((pt.pos(0) - minPt.pos(0))/sizeX));
+      const size_t y = static_cast<size_t>(floor((pt.pos(1) - minPt.pos(1))/sizeY));
+      const size_t z = static_cast<size_t>(floor((pt.pos(2) - minPt.pos(2))/sizeZ));
+      const size_t id = (z * numVoxelZ) + (y * numVoxelY) + x;
+      #pragma omp critical(voxelGridUpdate)
       {
         if(voxels.find(id) == voxels.end()) {
-          voxels[id] = std::vector<unsigned int>();
+          voxels[id] = std::vector<size_t>();
           voxelIds.push_back(id);
         }
+
         voxels[id].push_back(p);
       }
     }
 
     std::vector<Point> newPoints;
-    const unsigned int numVoxelMaps = voxelIds.size();
-#pragma omp parallel for
-    for(unsigned int vmId = 0; vmId < numVoxelMaps; vmId++) {
-      const unsigned int vId = voxelIds[vmId];
-      const unsigned int nPts = voxels[vId].size();
+    const size_t numVoxelMaps = voxelIds.size();
+    #pragma omp parallel for
+    for(size_t vmId = 0; vmId < numVoxelMaps; vmId++) {
+      const size_t vId = voxelIds[vmId];
+      const size_t nPts = voxels[vId].size();
       if(nPts == 0) continue;
 
       Eigen::Vector3f pos;
-      std::set<unsigned int> vl;
-      for(const unsigned int p : voxels[vId]) {
+      std::set<size_t> vl;
+      for(const auto & p : voxels[vId]) {
         const Point pt = points[p];
         pos += pt.pos;
-        const int numV = pt.viewList.size();
-        for(int j =0; j < numV; j++)
+        const size_t numV = pt.viewList.size();
+        for(size_t j =0; j < numV; j++)
           vl.insert(pt.viewList[j]);
       }
       pos(0) = pos(0) / nPts;
@@ -87,26 +116,27 @@ namespace nomoko {
 
       Point newSP;
       newSP.pos = pos;
-      newSP.viewList = std::vector<unsigned int>(vl.begin(), vl.end());
-#pragma omp critical(pointsUpdate)
+      newSP.viewList = std::vector<size_t>(vl.begin(), vl.end());
+      #pragma omp critical(pointsUpdate)
       {
-        for(const int viewID : vl) {
+        for(const size_t viewID : vl) {
           views[viewID].viewPoints.push_back(newPoints.size());
         }
         newPoints.push_back(newSP);
       }
     }
 
+    std::cerr << "New points = " << newPoints.size() << std::endl;
     origPoints.clear();
     points.swap(origPoints);
     points.swap(newPoints);
     std::cerr << "Number of points = " << points.size() << std::endl;
   } // voxelGridFilter
 
-  Eigen::MatrixXf Domset::getSimilarityMatrix(std::map<int,int>& xId2vId) {
+  Eigen::MatrixXf Domset::getSimilarityMatrix(std::map<size_t,size_t>& xId2vId) {
     std::cout << "Generating Similarity Matrix "<< std::endl;
-    const int numC = xId2vId.size();
-    const int numP = points.size();
+    const size_t numC = xId2vId.size();
+    const size_t numP = points.size();
     if(numC == 0 || numP == 0) {
       std::cerr << "Invalid Data\n";
       exit(0);
@@ -116,10 +146,10 @@ namespace nomoko {
     Eigen::MatrixXf simMat;
     simMat.resize(numC, numC);
 #pragma omp parallel for collapse(2)
-    for( int xId1 = 0; xId1 < numC; xId1++) {
-      for( int xId2 = 0; xId2 < numC; xId2++) {
-        const int vId1 = xId2vId[xId1];
-        const int vId2 = xId2vId[xId2];
+    for( size_t xId1 = 0; xId1 < numC; xId1++) {
+      for( size_t xId2 = 0; xId2 < numC; xId2++) {
+        const size_t vId1 = xId2vId[xId1];
+        const size_t vId2 = xId2vId[xId2];
         if( vId1 == vId2) {
           simMat(xId1, xId2) = 0;
         } else {
@@ -135,13 +165,13 @@ namespace nomoko {
     return simMat;
   } // getSimilarityMatrix
 
-  float Domset::computeViewDistance(const int& vId1, const int& vId2, const float& medianDist) {
+  float Domset::computeViewDistance(const size_t& vId1, const size_t& vId2, const float& medianDist) {
     if(vId1 == vId2) return 1;
     float vd = viewDists(vId1, vId2);
     float dm = 1 + exp(- (vd - medianDist) / medianDist);
     return 1/dm;
   }
-  float Domset::getDistanceMedian(std::map<int,int> & xId2vId) {
+  float Domset::getDistanceMedian(std::map<size_t,size_t> & xId2vId) {
     std::cout << "Finding Distance Median\n";
     const size_t numC = xId2vId.size();
     if(numC == 0) {
@@ -182,7 +212,7 @@ namespace nomoko {
     }
   }
   void Domset::findCommonPoints(const View& v1, const View& v2,
-      std::vector<int>& commonPoints){
+      std::vector<size_t>& commonPoints){
     commonPoints.clear();
     const size_t numVP1 = v1.viewPoints.size();
     const size_t numVP2 = v2.viewPoints.size();
@@ -197,8 +227,8 @@ namespace nomoko {
     commonPoints.resize(it - commonPoints.begin());
   } // findCommonPoints
 
-  float Domset::computeViewSimilaity(const View& v1, const View& v2) {
-    std::vector<int> commonPoints;
+  const float Domset::computeViewSimilaity(const View& v1, const View& v2) {
+    std::vector<size_t> commonPoints;
     findCommonPoints(v1, v2, commonPoints);
     const size_t numCP = commonPoints.size();
 
@@ -221,8 +251,8 @@ namespace nomoko {
     return (ans != ans)? 0 : ans;
     } // computeViewSimilaity
 
-    void Domset::computeClustersAP(std::map<int, int>& xId2vId,
-        std::vector<std::vector<int> >& clusters) {
+    void Domset::computeClustersAP(std::map<size_t, size_t>& xId2vId,
+        std::vector<std::vector<size_t> >& clusters) {
       const size_t numX = xId2vId.size();
       if(numX == 0) {
         std::cout << "Invalid map size\n";
@@ -316,8 +346,8 @@ namespace nomoko {
 
       // getting initial clusters
       std::set<size_t > centers;
-      std::map<size_t, std::vector<int>> clMap;
-      int idxForI = 0;
+      std::map<size_t, std::vector<size_t>> clMap;
+      size_t idxForI = 0;
       for(size_t i=0; i<numX; i++) {
         float maxSim = std::numeric_limits<float>::min();
         for(size_t j=0; j<numX; j++) {
@@ -330,7 +360,7 @@ namespace nomoko {
       }
 
       for(auto const c : centers)
-        clMap[c] = std::vector<int>();
+        clMap[c] = std::vector<size_t>();
 
       for(size_t i = 0; i < numX; i++ ) {
         float maxSim = std::numeric_limits<float>::min();
@@ -348,13 +378,13 @@ namespace nomoko {
       do{
         change = false;
         for(const auto p1 : clMap) {
-          const int vId1 = xId2vId[p1.first];
+          const size_t vId1 = xId2vId[p1.first];
           if(p1.second.size() < kMinClusterSize) {
             float minDist = std::numeric_limits<float>::max();
             int minId = -1;
             for(const auto p2 : clMap) {
               if(p1.first == p2.first) continue;
-              const int vId2 = xId2vId[p2.first];
+              const size_t vId2 = xId2vId[p2.first];
               if(viewDists(vId1, vId2) < minDist
                   && (p1.second.size() + p2.second.size()) < kMaxClusterSize) {
                 minDist = viewDists(vId1, vId2);
@@ -375,7 +405,7 @@ namespace nomoko {
       // enforcing max size constraints
       // adding it to clusters vector
       for(const auto p : clMap) {
-        std::vector<int> cl;
+        std::vector<size_t> cl;
         for(const auto i : p.second){
           cl.push_back(xId2vId[i]);
         }
@@ -385,12 +415,12 @@ namespace nomoko {
           while(true) {
             auto stop = it + kMaxClusterSize;
             if(stop < cl.end()) {
-              auto tmp = std::vector<int>(it, stop);
+              auto tmp = std::vector<size_t>(it, stop);
               it = stop;
               std::sort(tmp.begin(), tmp.end());
               clusters.push_back(tmp);
             } else {
-              std::vector<int> tmp;
+              std::vector<size_t> tmp;
               while(it < cl.end()) {
                 tmp.push_back(*it);
                 it++;
@@ -407,31 +437,31 @@ namespace nomoko {
       }
     }
 
-    void Domset::clusterViews(std::map<int,int>& xId2vId, const int& minClusterSize,
-          const int& maxClusterSize) {
+    void Domset::clusterViews(std::map<size_t,size_t>& xId2vId, const size_t& minClusterSize,
+          const size_t& maxClusterSize) {
       std::cout << "[ Clustering Views ] "<< std::endl;
-      const int numC = views.size();
+      const size_t umC = views.size();
       kMinClusterSize = minClusterSize;
       kMaxClusterSize = maxClusterSize;
 
-      std::vector<std::vector<int> > clusters;
+      std::vector<std::vector<size_t> > clusters;
       computeClustersAP(xId2vId, clusters);
 
       finalClusters.swap(clusters);
     }
 
     void Domset::clusterViews(
-        const int& minClusterSize, const int& maxClusterSize){
+        const size_t& minClusterSize, const size_t& maxClusterSize){
       std::cout << "[ Clustering Views ] "<< std::endl;
-      const int numC = views.size();
+      const size_t numC = views.size();
       kMinClusterSize = minClusterSize;
       kMaxClusterSize = maxClusterSize;
 
-      std::map<int,int> xId2vId;
-      for(int i =0; i <numC; i++) {
+      std::map<size_t,size_t> xId2vId;
+      for(size_t i =0; i <numC; i++) {
         xId2vId[i] = i;
       }
-      std::vector<std::vector<int> > clusters;
+      std::vector<std::vector<size_t> > clusters;
       computeClustersAP(xId2vId, clusters);
 
       finalClusters.swap(clusters);
@@ -455,12 +485,12 @@ namespace nomoko {
       plys    << "ply\n"
         << "format ascii 1.0\n";
 
-      int totalViews = 0;
+      size_t totalViews = 0;
       for(const auto cl : finalClusters)
         totalViews += cl.size();
-      const int numPts = origPoints.size();
+      const size_t numPts = origPoints.size();
 
-      int totalPoints = totalViews;
+      size_t totalPoints = totalViews;
       if (exportPoints) totalPoints += numPts;
       plys    << "element vertex "
               << totalPoints << std::endl
