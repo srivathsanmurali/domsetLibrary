@@ -21,6 +21,7 @@ namespace nomoko {
     const size_t numResults(1);
     const size_t numPoints (points.size());
     float totalDist = 0;
+    pcCentre.pos << 0, 0, 0;
     #pragma omp parallel for
     for (size_t i =0; i < numPoints; i++) {
       const Point & p = points[i];
@@ -32,7 +33,10 @@ namespace nomoko {
 
       #pragma omp critical(TotalDistanceUpdate)
       {
-        totalDist += out_dist_sqr[1];
+        totalDist += (p.pos - points[ret_index[1]].pos).norm();
+        pcCentre.pos(0) += (p.pos(0) / numPoints);
+        pcCentre.pos(1) += (p.pos(1) / numPoints);
+        pcCentre.pos(2) += (p.pos(2) / numPoints);
       }
     }
 
@@ -46,14 +50,14 @@ namespace nomoko {
     // normalizing the distances on points
     #pragma omp parallel for
     for (size_t i =0; i < numPoints; i++) {
-      points[i].pos = points[i].pos * normScale;
+      points[i].pos = (points[i].pos - pcCentre.pos) * normScale;
     }
 
     // normalizing the camera center positions
     const size_t numViews(views.size());
     #pragma omp parallel for
     for (size_t i = 0; i < numViews; i++) {
-      views[i].trans = views[i].trans * normScale;
+      views[i].trans = (views[i].trans - pcCentre.pos) * normScale;
     }
   }
 
@@ -62,14 +66,14 @@ namespace nomoko {
     #pragma omp parallel for
     // denormalizing points
     for (size_t i =0; i < numPoints; i++) {
-      points[i].pos = points[i].pos / normScale;
+      points[i].pos = (points[i].pos / normScale) + pcCentre.pos;
     }
 
     // denormalizing camera centers
     const size_t numViews(views.size());
     #pragma omp parallel for
     for (size_t i = 0; i < numViews; i++) {
-      views[i].trans = views[i].trans / normScale;
+      views[i].trans = (views[i].trans / normScale) + pcCentre.pos;
     }
   }
 

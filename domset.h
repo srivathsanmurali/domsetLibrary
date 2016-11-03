@@ -132,6 +132,7 @@ namespace nomoko {
       float normScale;
       Point normMin;
       Point normMax;
+      Point pcCentre;
 
       // voxel grid stuff
       const float kVoxelSize = 0.1f;
