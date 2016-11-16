@@ -3,7 +3,6 @@
 #include <iomanip>
 #include <cstdlib>
 
-#include <omp.h>
 #include <domsetInterface.h>
 #include <domset.h>
 using nomoko::Interface;
