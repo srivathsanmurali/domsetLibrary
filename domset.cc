@@ -1,5 +1,5 @@
 #include "domset.h"
-#if USE_OpenMP
+#if DOMSET_USE_OPENMP
 #include <omp.h>
 #endif
 
@@ -24,7 +24,7 @@ namespace nomoko {
     const size_t numPoints (points.size());
     float totalDist = 0;
     pcCentre.pos << 0, 0, 0;
-    #if USE_OpenMP
+    #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
     for (size_t i =0; i < numPoints; i++) {
@@ -35,7 +35,7 @@ namespace nomoko {
       std::vector<float> out_dist_sqr(2);
       index.knnSearch(queryPt,2, &ret_index[0], &out_dist_sqr[0]);
 
-      #if USE_OpenMP
+      #if DOMSET_USE_OPENMP
       #pragma omp critical(TotalDistanceUpdate)
       #endif
       {
@@ -54,7 +54,7 @@ namespace nomoko {
     std::cerr << "Normalization Scale = " << normScale << std::endl;
 
     // normalizing the distances on points
-    #if USE_OpenMP
+    #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
     for (size_t i =0; i < numPoints; i++) {
@@ -63,7 +63,7 @@ namespace nomoko {
 
     // normalizing the camera center positions
     const size_t numViews(views.size());
-    #if USE_OpenMP
+    #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
     for (size_t i = 0; i < numViews; i++) {
@@ -73,7 +73,7 @@ namespace nomoko {
 
   void Domset::deNormalizePointCloud() {
     const size_t numPoints (points.size());
-    #if USE_OpenMP
+    #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
     // denormalizing points
@@ -83,7 +83,7 @@ namespace nomoko {
 
     // denormalizing camera centers
     const size_t numViews(views.size());
-    #if USE_OpenMP
+    #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
     for (size_t i = 0; i < numViews; i++) {
@@ -133,7 +133,7 @@ namespace nomoko {
     /* adding points to the voxels */
     std::map<size_t, std::vector<size_t> > voxels;
     std::vector<size_t> voxelIds;
-    #if USE_OpenMP
+    #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
     for(size_t p = 0; p < numP; p++) {
@@ -142,7 +142,7 @@ namespace nomoko {
       const size_t y = static_cast<size_t>(floor((pt.pos(1) - minPt.pos(1))/sizeY));
       const size_t z = static_cast<size_t>(floor((pt.pos(2) - minPt.pos(2))/sizeZ));
       const size_t id = (z * numVoxelZ) + (y * numVoxelY) + x;
-      #if USE_OpenMP
+      #if DOMSET_USE_OPENMP
       #pragma omp critical(voxelGridUpdate)
       #endif
       {
@@ -157,7 +157,7 @@ namespace nomoko {
 
     std::vector<Point> newPoints;
     const size_t numVoxelMaps = voxelIds.size();
-    #if USE_OpenMP
+    #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
     for(size_t vmId = 0; vmId < numVoxelMaps; vmId++) {
@@ -181,7 +181,7 @@ namespace nomoko {
       Point newSP;
       newSP.pos = pos;
       newSP.viewList = std::vector<size_t>(vl.begin(), vl.end());
-      #if USE_OpenMP
+      #if DOMSET_USE_OPENMP
       #pragma omp critical(pointsUpdate)
       #endif
       {
@@ -211,7 +211,7 @@ namespace nomoko {
     std::cout << "Median dists = " << medianDist << std::endl;
     Eigen::MatrixXf simMat;
     simMat.resize(numC, numC);
-    #if USE_OpenMP
+    #if DOMSET_USE_OPENMP
     #pragma omp parallel for collapse(2)
     #endif
     for( size_t xId1 = 0; xId1 < numC; xId1++) {
@@ -301,7 +301,7 @@ namespace nomoko {
     const size_t numCP = commonPoints.size();
 
     float w =0;
-    #if USE_OpenMP
+    #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
     for( size_t p=0; p < numCP; p++){
@@ -314,7 +314,7 @@ namespace nomoko {
       const float angle = acos(c1.dot(c2));
       const float expAngle = exp(- ( angle * angle) / kAngleSigma_2);
       //std::cerr << angle <<  " = " << expAngle << std::endl;
-      #if USE_OpenMP
+      #if DOMSET_USE_OPENMP
       #pragma omp atomic
       #endif
       w += expAngle;
@@ -339,7 +339,7 @@ namespace nomoko {
 
       for(size_t m=0; m<kNumIter; m++) {
         //update responsibility
-        #if USE_OpenMP
+        #if DOMSET_USE_OPENMP
         #pragma omp parallel for collapse(2)
         #endif
         for(size_t i =0; i<numX; i++) {
@@ -361,7 +361,7 @@ namespace nomoko {
         }
 
         //update availability
-        #if USE_OpenMP
+        #if DOMSET_USE_OPENMP
         #pragma omp parallel for collapse(2)
         #endif
         for(size_t i=0; i<numX; i++) {
@@ -396,7 +396,7 @@ namespace nomoko {
           }
         }
       }
-      #if USE_OpenMP
+      #if DOMSET_USE_OPENMP
       #pragma omp parallel for
       #endif
       for(size_t i =0; i<numX; i++) {
