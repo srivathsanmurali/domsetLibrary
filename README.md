@@ -12,6 +12,10 @@ This libary is an implementation of "Dominant set clustering" introduced by Maur
 Mauro, Massimo, et al. ["An integer linear programming model for view selection on overlapping camera clusters."](http://www.vision.ee.ethz.ch/~rhayko/paper/3dv2014_mauro_joint_selection_clustering.pdf)
 2014 2nd International Conference on 3D Vision. Vol. 1. IEEE, 2014.
 
+Mauro, Massimo, et al. ["Overlapping camera clustering through dominant sets for scalable 3D reconstruction."]
+(http://www.vision.ee.ethz.ch/~rhayko/paper/bmvc2013_mauro_view_clustering.pdf)
+2013 British Machine Vision Conference.
+
 ## Terminology in our library
 * **Point** stores positional informations about the sparse point cloud from SFM.
 * **Camera** stores the intrinsic properties of distinct cameras used in the sytem.
@@ -34,12 +38,12 @@ int main() {
   std::vector<nomoko::Views> views;
   // Fill with poses of images.
 
-  size_t voxelGridSize = 15;
+  const size_t voxelGridSize = 15;
   nomoko::Domset domset(points, views, camera, voxelGridSize)
 
   // specify sizes of view clusters
-  size_t clusterSizeLowerBound = 10;
-  size_t clusterSizeUpperBound = 15;
+  const size_t clusterSizeLowerBound = 10;
+  const size_t clusterSizeUpperBound = 15;
   domset.clusterViews(clusterSizeLowerBound, clusterSizeUpperBound);
 
   std::vector<std::vector<size_t> > clusters;
