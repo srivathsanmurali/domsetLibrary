@@ -583,13 +583,14 @@ namespace nomoko {
               << "end_header\n";
 
       for(const auto cl : finalClusters) {
-        uint red, green, blue;
-        red = (rand() % 255);
-        green = (rand() % 255);
-        blue = (rand() % 255);
+        unsigned int
+          red = (rand() % 255),
+          green = (rand() % 255),
+          blue = (rand() % 255);
         for(const auto id : cl) {
-          Eigen::Vector3f pos = views[id].trans;
-          plys << pos(0) << " " << pos(1) << " " << pos(2) << " "
+          const Eigen::Vector3f pos = views[id].trans;
+          plys
+            << pos(0) << " " << pos(1) << " " << pos(2) << " "
             << red << " " << green << " " << blue << std::endl;
         }
       }
