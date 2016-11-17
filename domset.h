@@ -118,7 +118,7 @@ namespace nomoko {
 
       std::vector<std::vector<size_t > > finalClusters;
 
-      const float kAngleSigma = 3.14159265358979323846 * 4;
+      const float kAngleSigma = 3.14159265358979323846 / 4;
       const float kAngleSigma_2 = kAngleSigma * kAngleSigma;
       size_t kMinClusterSize = 10;
       size_t kMaxClusterSize = 20;
