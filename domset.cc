@@ -27,7 +27,7 @@ namespace nomoko {
     #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
-    for (size_t i =0; i < numPoints; i++) {
+    for (int i =0; i < numPoints; i++) {
       const Point & p = points[i];
       float queryPt[3] = {p.pos(0), p.pos(1), p.pos(2)};
 
@@ -57,7 +57,7 @@ namespace nomoko {
     #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
-    for (size_t i =0; i < numPoints; i++) {
+    for (int i =0; i < numPoints; i++) {
       points[i].pos = (points[i].pos - pcCentre.pos) * normScale;
     }
 
@@ -66,7 +66,7 @@ namespace nomoko {
     #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
-    for (size_t i = 0; i < numViews; i++) {
+    for (int i = 0; i < numViews; i++) {
       views[i].trans = (views[i].trans - pcCentre.pos) * normScale;
     }
   }
@@ -77,7 +77,7 @@ namespace nomoko {
     #pragma omp parallel for
     #endif
     // denormalizing points
-    for (size_t i =0; i < numPoints; i++) {
+    for (int i =0; i < numPoints; i++) {
       points[i].pos = (points[i].pos / normScale) + pcCentre.pos;
     }
 
@@ -86,7 +86,7 @@ namespace nomoko {
     #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
-    for (size_t i = 0; i < numViews; i++) {
+    for (int i = 0; i < numViews; i++) {
       views[i].trans = (views[i].trans / normScale) + pcCentre.pos;
     }
   }
@@ -136,7 +136,7 @@ namespace nomoko {
     #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
-    for(size_t p = 0; p < numP; p++) {
+    for(int p = 0; p < numP; p++) {
       const Point pt = points[p];
       const size_t x = static_cast<size_t>(floor((pt.pos(0) - minPt.pos(0))/sizeX));
       const size_t y = static_cast<size_t>(floor((pt.pos(1) - minPt.pos(1))/sizeY));
@@ -160,7 +160,7 @@ namespace nomoko {
     #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
-    for(size_t vmId = 0; vmId < numVoxelMaps; vmId++) {
+    for(int vmId = 0; vmId < numVoxelMaps; vmId++) {
       const size_t vId = voxelIds[vmId];
       const size_t nPts = voxels[vId].size();
       if(nPts == 0) continue;
@@ -212,10 +212,14 @@ namespace nomoko {
     Eigen::MatrixXf simMat;
     simMat.resize(numC, numC);
     #if DOMSET_USE_OPENMP
+    #if _OPENMP > 200505 // collapse is only accessible from OpenMP 3.0
     #pragma omp parallel for collapse(2)
+    #else
+    #pragma omp parallel for
     #endif
-    for( size_t xId1 = 0; xId1 < numC; xId1++) {
-      for( size_t xId2 = 0; xId2 < numC; xId2++) {
+    #endif
+    for( int xId1 = 0; xId1 < numC; xId1++) {
+      for( int xId2 = 0; xId2 < numC; xId2++) {
         const size_t vId1 = xId2vId[xId1];
         const size_t vId2 = xId2vId[xId2];
         if( vId1 == vId2) {
@@ -304,7 +308,7 @@ namespace nomoko {
     #if DOMSET_USE_OPENMP
     #pragma omp parallel for
     #endif
-    for( size_t p=0; p < numCP; p++){
+    for( int p=0; p < numCP; p++){
       const auto pId = commonPoints[p];
       //for( const auto pId : commonPoints ){
       Eigen::Vector3f c1 = v1.trans - points[pId].pos;
@@ -340,10 +344,14 @@ namespace nomoko {
       for(size_t m=0; m<kNumIter; m++) {
         //update responsibility
         #if DOMSET_USE_OPENMP
+        #if _OPENMP > 200505 // collapse is only accessible from OpenMP 3.0
         #pragma omp parallel for collapse(2)
+        #else
+        #pragma omp parallel for
         #endif
-        for(size_t i =0; i<numX; i++) {
-          for(size_t k=0; k<numX; k++) {
+        #endif
+        for(int i =0; i<numX; i++) {
+          for(int k=0; k<numX; k++) {
             float max1 = std::numeric_limits<float>::min();
             float max2 = std::numeric_limits<float>::min();
 
@@ -362,10 +370,14 @@ namespace nomoko {
 
         //update availability
         #if DOMSET_USE_OPENMP
+        #if _OPENMP > 200505 // collapse is only accessible from OpenMP 3.0
         #pragma omp parallel for collapse(2)
+        #else
+        #pragma omp parallel for
         #endif
-        for(size_t i=0; i<numX; i++) {
-          for(size_t k=0; k<numX; k++) {
+        #endif
+        for(int i=0; i<numX; i++) {
+          for(int k=0; k<numX; k++) {
             if(i==k) continue;
             const size_t maxik = std::max(i, k);
             const size_t minik = std::min(i, k);
@@ -399,7 +411,7 @@ namespace nomoko {
       #if DOMSET_USE_OPENMP
       #pragma omp parallel for
       #endif
-      for(size_t i =0; i<numX; i++) {
+      for(int i =0; i<numX; i++) {
         float sum1 = 0.0f;
         float sum2 = 0.0f;
         float r1, r2;
