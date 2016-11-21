@@ -325,303 +325,303 @@ namespace nomoko {
     }
     const float ans = w / numCP;
     return (ans != ans)? 0 : ans;
-    } // computeViewSimilaity
+  } // computeViewSimilaity
 
-    void Domset::computeClustersAP(std::map<size_t, size_t>& xId2vId,
-        std::vector<std::vector<size_t> >& clusters) {
-      const size_t numX = xId2vId.size();
-      if(numX == 0) {
-        std::cout << "Invalid map size\n";
-        exit(0);
-      }
+  void Domset::computeClustersAP(std::map<size_t, size_t>& xId2vId,
+      std::vector<std::vector<size_t> >& clusters) {
+    const size_t numX = xId2vId.size();
+    if(numX == 0) {
+      std::cout << "Invalid map size\n";
+      exit(0);
+    }
 
-      Eigen::MatrixXf S = getSimilarityMatrix(xId2vId);
-      Eigen::MatrixXf R(numX, numX);
-      R.setConstant(0);
-      Eigen::MatrixXf A(numX, numX);
-      A.setConstant(0);
+    Eigen::MatrixXf S = getSimilarityMatrix(xId2vId);
+    Eigen::MatrixXf R(numX, numX);
+    R.setConstant(0);
+    Eigen::MatrixXf A(numX, numX);
+    A.setConstant(0);
 
-      for(size_t m=0; m<kNumIter; m++) {
-        //update responsibility
-        #if DOMSET_USE_OPENMP
-        #if _OPENMP > 200505 // collapse is only accessible from OpenMP 3.0
-        #pragma omp parallel for collapse(2)
-        #else
-        #pragma omp parallel for
-        #endif
-        #endif
-        for(int i =0; i<numX; i++) {
-          for(int k=0; k<numX; k++) {
-            float max1 = std::numeric_limits<float>::min();
-            float max2 = std::numeric_limits<float>::min();
-
-            for(size_t kk=0; kk<k; kk++) {
-              if(S(i,kk) +  A(i,kk) >max1)
-                max1 = S(i,kk) +A(i,kk);
-            }
-            for(size_t kk=k+1; kk<numX; kk++) {
-              if(S(i,kk) +A(i,kk) >max2)
-                max2 = S(i,kk) +A(i,kk);
-            }
-            float max = std::max(max1,max2);
-            R(i,k) = (1-lambda)*(S(i,k) - max) + lambda*R(i,k) ;
-          }
-        }
-
-        //update availability
-        #if DOMSET_USE_OPENMP
-        #if _OPENMP > 200505 // collapse is only accessible from OpenMP 3.0
-        #pragma omp parallel for collapse(2)
-        #else
-        #pragma omp parallel for
-        #endif
-        #endif
-        for(int i=0; i<numX; i++) {
-          for(int k=0; k<numX; k++) {
-            if(i==k) continue;
-            const size_t maxik = std::max(i, k);
-            const size_t minik = std::min(i, k);
-            float sum1 = 0.0f;
-            float sum2 = 0.0f;
-            float sum3 = 0.0f;
-            float r1, r2, r3;
-            for(size_t ii=0; ii<minik; ii++) {
-              r1 = R(ii,k);
-              //sum1 += std::max(0.0f, r1);
-              if(r1 > 0.0f)
-                sum1 += r1;
-            }
-            for(size_t ii=minik+1; ii<maxik; ii++) {
-              r2 = R(ii,k);
-              // sum2 += std::max(0.0f, r2);
-              if(r2 > 0.0f)
-                sum2 += r2;
-            }
-            for(size_t ii=maxik+1; ii<numX; ii++) {
-              r3 = R(ii,k);
-              // sum3 += std::max(0.0f, r3);
-              if(r3 > 0.0f)
-                sum3 += r3;
-            }
-            const float r = R(k,k) + sum1 + sum2 + sum3;
-            A(i,k) = (1-lambda)*std::min(0.0f, r) + lambda*A(i,k);
-          }
-        }
-      }
+    for(size_t m=0; m<kNumIter; m++) {
+      //update responsibility
       #if DOMSET_USE_OPENMP
+      #if _OPENMP > 200505 // collapse is only accessible from OpenMP 3.0
+      #pragma omp parallel for collapse(2)
+      #else
       #pragma omp parallel for
       #endif
+      #endif
       for(int i =0; i<numX; i++) {
-        float sum1 = 0.0f;
-        float sum2 = 0.0f;
-        float r1, r2;
-        for(size_t ii=0; ii<i; ii++) {
-          r1 = R(ii,i);
-          //sum1 += std::max(0.0f, r1);
-          if(r1 > 0.0f)
-            sum1 += r1;
-        }
-        for(size_t ii=i+1; ii<numX; ii++) {
-          r2 = R(ii,i);
-          //sum2 += std::max(0.0f, r2);
-          if(r2 > 0.0f)
-            sum2 += r2;
-        }
-        A(i,i) = (1-lambda)*(sum1+sum2) + lambda*A(i,i);
-      }
+        for(int k=0; k<numX; k++) {
+          float max1 = std::numeric_limits<float>::min();
+          float max2 = std::numeric_limits<float>::min();
 
-      //find the exemplar
-      Eigen::MatrixXf E(numX, numX);
-      E = R + A;
-
-      // getting initial clusters
-      std::set<size_t > centers;
-      std::map<size_t, std::vector<size_t>> clMap;
-      size_t idxForI = 0;
-      for(size_t i=0; i<numX; i++) {
-        float maxSim = std::numeric_limits<float>::min();
-        for(size_t j=0; j<numX; j++) {
-          if (E(i,j)>maxSim) {
-            maxSim = E(i,j);
-            idxForI = j;
+          for(size_t kk=0; kk<k; kk++) {
+            if(S(i,kk) +  A(i,kk) >max1)
+              max1 = S(i,kk) +A(i,kk);
           }
-        }
-        centers.insert(idxForI);
-      }
-
-      for(auto const c : centers)
-        clMap[c] = std::vector<size_t>();
-
-      for(size_t i = 0; i < numX; i++ ) {
-        float maxSim = std::numeric_limits<float>::min();
-        for(auto const c : centers) {
-          if( S(i,c) > maxSim){
-            idxForI = i;
-            maxSim = S(i,c);
+          for(size_t kk=k+1; kk<numX; kk++) {
+            if(S(i,kk) +A(i,kk) >max2)
+              max2 = S(i,kk) +A(i,kk);
           }
+          float max = std::max(max1,max2);
+          R(i,k) = (1-lambda)*(S(i,k) - max) + lambda*R(i,k) ;
         }
-        clMap[idxForI].push_back(i);
       }
 
-      // enforcing min size constraints
-      bool change = false;
-      do{
-        change = false;
-        for(const auto p1 : clMap) {
-          const size_t vId1 = xId2vId[p1.first];
-          if(p1.second.size() < kMinClusterSize) {
-            float minDist = std::numeric_limits<float>::max();
-            int minId = -1;
-            for(const auto p2 : clMap) {
-              if(p1.first == p2.first) continue;
-              const size_t vId2 = xId2vId[p2.first];
-              if(viewDists(vId1, vId2) < minDist
-                  && (p1.second.size() + p2.second.size()) < kMaxClusterSize) {
-                minDist = viewDists(vId1, vId2);
-                minId = p2.first;
-              }
+      //update availability
+      #if DOMSET_USE_OPENMP
+      #if _OPENMP > 200505 // collapse is only accessible from OpenMP 3.0
+      #pragma omp parallel for collapse(2)
+      #else
+      #pragma omp parallel for
+      #endif
+      #endif
+      for(int i=0; i<numX; i++) {
+        for(int k=0; k<numX; k++) {
+          if(i==k) continue;
+          const size_t maxik = std::max(i, k);
+          const size_t minik = std::min(i, k);
+          float sum1 = 0.0f;
+          float sum2 = 0.0f;
+          float sum3 = 0.0f;
+          float r1, r2, r3;
+          for(size_t ii=0; ii<minik; ii++) {
+            r1 = R(ii,k);
+            //sum1 += std::max(0.0f, r1);
+            if(r1 > 0.0f)
+              sum1 += r1;
+          }
+          for(size_t ii=minik+1; ii<maxik; ii++) {
+            r2 = R(ii,k);
+            // sum2 += std::max(0.0f, r2);
+            if(r2 > 0.0f)
+              sum2 += r2;
+          }
+          for(size_t ii=maxik+1; ii<numX; ii++) {
+            r3 = R(ii,k);
+            // sum3 += std::max(0.0f, r3);
+            if(r3 > 0.0f)
+              sum3 += r3;
+          }
+          const float r = R(k,k) + sum1 + sum2 + sum3;
+          A(i,k) = (1-lambda)*std::min(0.0f, r) + lambda*A(i,k);
+        }
+      }
+    }
+    #if DOMSET_USE_OPENMP
+    #pragma omp parallel for
+    #endif
+    for(int i =0; i<numX; i++) {
+      float sum1 = 0.0f;
+      float sum2 = 0.0f;
+      float r1, r2;
+      for(size_t ii=0; ii<i; ii++) {
+        r1 = R(ii,i);
+        //sum1 += std::max(0.0f, r1);
+        if(r1 > 0.0f)
+          sum1 += r1;
+      }
+      for(size_t ii=i+1; ii<numX; ii++) {
+        r2 = R(ii,i);
+        //sum2 += std::max(0.0f, r2);
+        if(r2 > 0.0f)
+          sum2 += r2;
+      }
+      A(i,i) = (1-lambda)*(sum1+sum2) + lambda*A(i,i);
+    }
+
+    //find the exemplar
+    Eigen::MatrixXf E(numX, numX);
+    E = R + A;
+
+    // getting initial clusters
+    std::set<size_t > centers;
+    std::map<size_t, std::vector<size_t>> clMap;
+    size_t idxForI = 0;
+    for(size_t i=0; i<numX; i++) {
+      float maxSim = std::numeric_limits<float>::min();
+      for(size_t j=0; j<numX; j++) {
+        if (E(i,j)>maxSim) {
+          maxSim = E(i,j);
+          idxForI = j;
+        }
+      }
+      centers.insert(idxForI);
+    }
+
+    for(auto const c : centers)
+      clMap[c] = std::vector<size_t>();
+
+    for(size_t i = 0; i < numX; i++ ) {
+      float maxSim = std::numeric_limits<float>::min();
+      for(auto const c : centers) {
+        if( S(i,c) > maxSim){
+          idxForI = i;
+          maxSim = S(i,c);
+        }
+      }
+      clMap[idxForI].push_back(i);
+    }
+
+    // enforcing min size constraints
+    bool change = false;
+    do{
+      change = false;
+      for(const auto p1 : clMap) {
+        const size_t vId1 = xId2vId[p1.first];
+        if(p1.second.size() < kMinClusterSize) {
+          float minDist = std::numeric_limits<float>::max();
+          int minId = -1;
+          for(const auto p2 : clMap) {
+            if(p1.first == p2.first) continue;
+            const size_t vId2 = xId2vId[p2.first];
+            if(viewDists(vId1, vId2) < minDist
+                && (p1.second.size() + p2.second.size()) < kMaxClusterSize) {
+              minDist = viewDists(vId1, vId2);
+              minId = p2.first;
             }
-            if(minId > -1) {
-              change = true;
-              clMap[minId].insert(clMap[minId].end(),
-                  p1.second.begin(), p1.second.end());
-              //std::cout << "merge " << p1.first << " -> " << minId << std::endl;
+          }
+          if(minId > -1) {
+            change = true;
+            clMap[minId].insert(clMap[minId].end(),
+                p1.second.begin(), p1.second.end());
+            //std::cout << "merge " << p1.first << " -> " << minId << std::endl;
+          }
+          clMap.erase(clMap.find(p1.first));
+        }
+      }
+    }while(change);
+
+    // enforcing max size constraints
+    // adding it to clusters vector
+    for(const auto p : clMap) {
+      std::vector<size_t> cl;
+      for(const auto i : p.second){
+        cl.push_back(xId2vId[i]);
+      }
+      if(cl.size() > kMaxClusterSize) {
+        // std::cout << "split " << p.first << " | " << p.second.size() << std::endl;
+        auto it = cl.begin();
+        while(true) {
+          auto stop = it + kMaxClusterSize;
+          if(stop < cl.end()) {
+            auto tmp = std::vector<size_t>(it, stop);
+            it = stop;
+            std::sort(tmp.begin(), tmp.end());
+            clusters.push_back(tmp);
+          } else {
+            std::vector<size_t> tmp;
+            while(it < cl.end()) {
+              tmp.push_back(*it);
+              it++;
             }
-            clMap.erase(clMap.find(p1.first));
+            std::sort(tmp.begin(), tmp.end());
+            clusters.push_back(tmp);
+            break;
           }
         }
-      }while(change);
-
-      // enforcing max size constraints
-      // adding it to clusters vector
-      for(const auto p : clMap) {
-        std::vector<size_t> cl;
-        for(const auto i : p.second){
-          cl.push_back(xId2vId[i]);
-        }
-        if(cl.size() > kMaxClusterSize) {
-          // std::cout << "split " << p.first << " | " << p.second.size() << std::endl;
-          auto it = cl.begin();
-          while(true) {
-            auto stop = it + kMaxClusterSize;
-            if(stop < cl.end()) {
-              auto tmp = std::vector<size_t>(it, stop);
-              it = stop;
-              std::sort(tmp.begin(), tmp.end());
-              clusters.push_back(tmp);
-            } else {
-              std::vector<size_t> tmp;
-              while(it < cl.end()) {
-                tmp.push_back(*it);
-                it++;
-              }
-              std::sort(tmp.begin(), tmp.end());
-              clusters.push_back(tmp);
-              break;
-            }
-          }
-        }else {
-          std::sort(cl.begin(), cl.end());
-          clusters.push_back(cl);
-        }
-      }
-    }
-
-    void Domset::clusterViews(std::map<size_t,size_t>& xId2vId, const size_t& minClusterSize,
-          const size_t& maxClusterSize) {
-      std::cout << "[ Clustering Views ] "<< std::endl;
-      const size_t umC = views.size();
-      kMinClusterSize = minClusterSize;
-      kMaxClusterSize = maxClusterSize;
-
-      std::vector<std::vector<size_t> > clusters;
-      computeClustersAP(xId2vId, clusters);
-
-      deNormalizePointCloud();
-      finalClusters.swap(clusters);
-    }
-
-    void Domset::clusterViews(
-        const size_t& minClusterSize, const size_t& maxClusterSize){
-      std::cout << "[ Clustering Views ] "<< std::endl;
-      const size_t numC = views.size();
-      kMinClusterSize = minClusterSize;
-      kMaxClusterSize = maxClusterSize;
-
-      std::map<size_t,size_t> xId2vId;
-      for(size_t i =0; i <numC; i++) {
-        xId2vId[i] = i;
-      }
-      std::vector<std::vector<size_t> > clusters;
-      computeClustersAP(xId2vId, clusters);
-
-      deNormalizePointCloud();
-      finalClusters.swap(clusters);
-    }
-
-    void Domset::printClusters() {
-      std::stringstream ss;
-      ss << "Clusters : \n";
-      for(const auto cl : finalClusters){
-        ss << cl.size() << " : ";
-        for(const auto id : cl) {
-          ss << id << " ";
-        }
-        ss << "\n\n";
-      }
-      std::cout << "Number of clusters = " << finalClusters.size() << std::endl;
-      std::cout << ss.str();
-    }
-    void Domset::exportToPLY(const std::string& plyFilename, bool exportPoints) {
-      std::stringstream plys;
-      plys    << "ply\n"
-        << "format ascii 1.0\n";
-
-      size_t totalViews = 0;
-      for(const auto cl : finalClusters)
-        totalViews += cl.size();
-      const size_t numPts = origPoints.size();
-
-      size_t totalPoints = totalViews;
-      if (exportPoints) totalPoints += numPts;
-      plys    << "element vertex "
-              << totalPoints << std::endl
-              << "property float x\n"
-              << "property float y\n"
-              << "property float z\n"
-              << "property uchar red\n"
-              << "property uchar green\n"
-              << "property uchar blue\n"
-              << "end_header\n";
-
-      for(const auto cl : finalClusters) {
-        unsigned int
-          red = (rand() % 255),
-          green = (rand() % 255),
-          blue = (rand() % 255);
-        for(const auto id : cl) {
-          const Eigen::Vector3f pos = views[id].trans;
-          plys
-            << pos(0) << " " << pos(1) << " " << pos(2) << " "
-            << red << " " << green << " " << blue << std::endl;
-        }
-      }
-
-      if (exportPoints) {
-        for(const auto pt : origPoints) {
-          Eigen::Vector3f pos = pt.pos.transpose();
-
-          plys << pos(0) << " " << pos(1) << " " << pos(2)
-            << " 255 255 255" << std::endl;
-        }
-      }
-
-      std::ofstream plyFile (plyFilename);
-      if(!plyFile.is_open()) {
-        std::cout << "Cant open " << plyFilename << " file\n";
-      } else {
-        plyFile << plys.str();
-        plyFile.close();
+      }else {
+        std::sort(cl.begin(), cl.end());
+        clusters.push_back(cl);
       }
     }
   }
+
+  void Domset::clusterViews(std::map<size_t,size_t>& xId2vId, const size_t& minClusterSize,
+        const size_t& maxClusterSize) {
+    std::cout << "[ Clustering Views ] "<< std::endl;
+    const size_t umC = views.size();
+    kMinClusterSize = minClusterSize;
+    kMaxClusterSize = maxClusterSize;
+
+    std::vector<std::vector<size_t> > clusters;
+    computeClustersAP(xId2vId, clusters);
+
+    deNormalizePointCloud();
+    finalClusters.swap(clusters);
+  }
+
+  void Domset::clusterViews(
+      const size_t& minClusterSize, const size_t& maxClusterSize){
+    std::cout << "[ Clustering Views ] "<< std::endl;
+    const size_t numC = views.size();
+    kMinClusterSize = minClusterSize;
+    kMaxClusterSize = maxClusterSize;
+
+    std::map<size_t,size_t> xId2vId;
+    for(size_t i =0; i <numC; i++) {
+      xId2vId[i] = i;
+    }
+    std::vector<std::vector<size_t> > clusters;
+    computeClustersAP(xId2vId, clusters);
+
+    deNormalizePointCloud();
+    finalClusters.swap(clusters);
+  }
+
+  void Domset::printClusters() {
+    std::stringstream ss;
+    ss << "Clusters : \n";
+    for(const auto cl : finalClusters){
+      ss << cl.size() << " : ";
+      for(const auto id : cl) {
+        ss << id << " ";
+      }
+      ss << "\n\n";
+    }
+    std::cout << "Number of clusters = " << finalClusters.size() << std::endl;
+    std::cout << ss.str();
+  }
+  void Domset::exportToPLY(const std::string& plyFilename, bool exportPoints) {
+    std::stringstream plys;
+    plys    << "ply\n"
+      << "format ascii 1.0\n";
+
+    size_t totalViews = 0;
+    for(const auto cl : finalClusters)
+      totalViews += cl.size();
+    const size_t numPts = origPoints.size();
+
+    size_t totalPoints = totalViews;
+    if (exportPoints) totalPoints += numPts;
+    plys    << "element vertex "
+            << totalPoints << std::endl
+            << "property float x\n"
+            << "property float y\n"
+            << "property float z\n"
+            << "property uchar red\n"
+            << "property uchar green\n"
+            << "property uchar blue\n"
+            << "end_header\n";
+
+    for(const auto cl : finalClusters) {
+      unsigned int
+        red = (rand() % 255),
+        green = (rand() % 255),
+        blue = (rand() % 255);
+      for(const auto id : cl) {
+        const Eigen::Vector3f pos = views[id].trans;
+        plys
+          << pos(0) << " " << pos(1) << " " << pos(2) << " "
+          << red << " " << green << " " << blue << std::endl;
+      }
+    }
+
+    if (exportPoints) {
+      for(const auto pt : origPoints) {
+        Eigen::Vector3f pos = pt.pos.transpose();
+
+        plys << pos(0) << " " << pos(1) << " " << pos(2)
+          << " 255 255 255" << std::endl;
+      }
+    }
+
+    std::ofstream plyFile (plyFilename);
+    if(!plyFile.is_open()) {
+      std::cout << "Cant open " << plyFilename << " file\n";
+    } else {
+      plyFile << plys.str();
+      plyFile.close();
+    }
+  }
+}
