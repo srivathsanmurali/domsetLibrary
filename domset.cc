@@ -257,19 +257,19 @@ namespace nomoko {
       exit(0);
     }
 
-    std::vector<float> dists(numC*numC);
+    std::vector<float> dists;
+    dists.reserve(numC*numC - numC);
     // float totalDist = 0;
     for(size_t i = 0; i < numC; i++) {
       const auto v1 = xId2vId[i];
       for(size_t j = 0; j < numC; j++ ) {
+        if (i == j) continue;
         const auto v2 = xId2vId[j];
         dists.push_back(viewDists(v1,v2));
-        // totalDist += viewDists(v1,v2);
       }
     }
     std::sort(dists.begin(), dists.end());
     return dists[dists.size() /2];
-    // return totalDist / numC;
   } // getDistanceMedian
 
   void Domset::getAllDistances() {
