@@ -59,7 +59,7 @@ namespace nomoko {
 
       // distance measures
       void getAllDistances();
-      float getDistanceMedian(std::map<size_t,size_t> &);
+      float getDistanceMedian(const std::map<size_t,size_t> &);
       float computeViewDistance(const size_t& vId1, const size_t & vId2,
               const float& medianDist);
 

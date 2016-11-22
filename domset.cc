@@ -35,7 +35,7 @@ namespace nomoko {
     #endif
     for_parallel(i, numPoints) {
       const Point & p = points[i];
-      float queryPt[3] = {p.pos(0), p.pos(1), p.pos(2)};
+      const float queryPt[3] = {p.pos(0), p.pos(1), p.pos(2)};
 
       std::vector<size_t> ret_index(2);
       std::vector<float> out_dist_sqr(2);
@@ -46,9 +46,7 @@ namespace nomoko {
       #endif
       {
         totalDist += (p.pos - points[ret_index[1]].pos).norm();
-        pcCentre.pos(0) += (p.pos(0) / numPoints);
-        pcCentre.pos(1) += (p.pos(1) / numPoints);
-        pcCentre.pos(2) += (p.pos(2) / numPoints);
+        pcCentre.pos += (p.pos / numPoints);
       }
     }
 
@@ -180,9 +178,7 @@ namespace nomoko {
         for(size_t j =0; j < numV; j++)
           vl.insert(pt.viewList[j]);
       }
-      pos(0) = pos(0) / nPts;
-      pos(1) = pos(1) / nPts;
-      pos(2) = pos(2) / nPts;
+      pos /= (float)nPts;
 
       Point newSP;
       newSP.pos = pos;
@@ -213,7 +209,7 @@ namespace nomoko {
       std::cerr << "Invalid Data\n";
       exit(0);
     }
-    float medianDist =  getDistanceMedian(xId2vId);
+    const float medianDist =  getDistanceMedian(xId2vId);
     std::cout << "Median dists = " << medianDist << std::endl;
     Eigen::MatrixXf simMat;
     simMat.resize(numC, numC);
@@ -244,27 +240,28 @@ namespace nomoko {
   } // getSimilarityMatrix
 
   float Domset::computeViewDistance(const size_t& vId1, const size_t& vId2, const float& medianDist) {
-    if(vId1 == vId2) return 1;
-    float vd = viewDists(vId1, vId2);
-    float dm = 1 + exp(- (vd - medianDist) / medianDist);
-    return 1/dm;
+    if(vId1 == vId2) return 1.f;
+    const float vd = viewDists(vId1, vId2);
+    const float dm = 1.f + exp(- (vd - medianDist) / medianDist);
+    return 1.f/dm;
   }
-  float Domset::getDistanceMedian(std::map<size_t,size_t> & xId2vId) {
+  float Domset::getDistanceMedian(const std::map<size_t,size_t> & xId2vId) {
     std::cout << "Finding Distance Median\n";
-    const size_t numC = xId2vId.size();
-    if(numC == 0) {
+    
+    if(xId2vId.empty()) {
       std::cerr << "No Views initialized \n";
       exit(0);
     }
 
+    const size_t numC = xId2vId.size();
     std::vector<float> dists;
     dists.reserve(numC*numC - numC);
     // float totalDist = 0;
     for(size_t i = 0; i < numC; i++) {
-      const auto v1 = xId2vId[i];
+      const size_t v1 = xId2vId.at(i);
       for(size_t j = 0; j < numC; j++ ) {
         if (i == j) continue;
-        const auto v2 = xId2vId[j];
+        const size_t v2 = xId2vId.at(j);
         dists.push_back(viewDists(v1,v2));
       }
     }
@@ -601,7 +598,7 @@ namespace nomoko {
             << "end_header\n";
 
     for(const auto cl : finalClusters) {
-      unsigned int
+      const unsigned int
         red = (rand() % 255),
         green = (rand() % 255),
         blue = (rand() % 255);
@@ -615,7 +612,7 @@ namespace nomoko {
 
     if (exportPoints) {
       for(const auto pt : origPoints) {
-        Eigen::Vector3f pos = pt.pos.transpose();
+        const Eigen::Vector3f pos = pt.pos.transpose();
 
         plys << pos(0) << " " << pos(1) << " " << pos(2)
           << " 255 255 255" << std::endl;
