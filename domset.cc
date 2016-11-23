@@ -473,36 +473,35 @@ namespace nomoko {
     bool change = false;
     do{
       change = false;
-      for(const auto p1 : clMap) {
-        const size_t vId1 = xId2vId[p1.first];
-        if(p1.second.size() < kMinClusterSize) {
+      for(auto p1 = clMap.begin(); p1 != clMap.end(); ++p1) {
+        const size_t vId1 = xId2vId[p1->first];
+        if(p1->second.size() < kMinClusterSize) {
           float minDist = std::numeric_limits<float>::max();
           int minId = -1;
-          for(const auto p2 : clMap) {
-            if(p1.first == p2.first) continue;
-            const size_t vId2 = xId2vId[p2.first];
+          for(auto p2 = clMap.begin(); p2 != clMap.end(); ++p2) {
+            if(p1->first == p2->first) continue;
+            const size_t vId2 = xId2vId[p2->first];
             if(viewDists(vId1, vId2) < minDist
-                && (p1.second.size() + p2.second.size()) < kMaxClusterSize) {
+                && (p1->second.size() + p2->second.size()) < kMaxClusterSize) {
               minDist = viewDists(vId1, vId2);
-              minId = p2.first;
+              minId = p2->first;
             }
           }
           if(minId > -1) {
             change = true;
             clMap[minId].insert(clMap[minId].end(),
-                p1.second.begin(), p1.second.end());
-            //std::cout << "merge " << p1.first << " -> " << minId << std::endl;
+                p1->second.begin(), p1->second.end());
           }
-          clMap.erase(clMap.find(p1.first));
+          clMap.erase(p1);
         }
       }
     }while(change);
 
     // enforcing max size constraints
     // adding it to clusters vector
-    for(const auto p : clMap) {
+    for(auto p = clMap.begin(); p != clMap.end(); ++p) {
       std::vector<size_t> cl;
-      for(const auto i : p.second){
+      for(const auto i : p->second){
         cl.push_back(xId2vId[i]);
       }
       if(cl.size() > kMaxClusterSize) {
