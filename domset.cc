@@ -471,13 +471,13 @@ namespace nomoko {
     do{
       change = false;
       for(auto p1 = clMap.begin(); p1 != clMap.end(); ++p1) {
-        const size_t vId1 = xId2vId[p1->first];
         if(p1->second.size() < kMinClusterSize) {
           float minDist = std::numeric_limits<float>::max();
           int minId = -1;
+          const size_t vId1 = xId2vId.at(p1->first);
           for(auto p2 = clMap.begin(); p2 != clMap.end(); ++p2) {
             if(p1->first == p2->first) continue;
-            const size_t vId2 = xId2vId[p2->first];
+            const size_t vId2 = xId2vId.at(p2->first);
             if(viewDists(vId1, vId2) < minDist
                 && (p1->second.size() + p2->second.size()) < kMaxClusterSize) {
               minDist = viewDists(vId1, vId2);
@@ -489,7 +489,7 @@ namespace nomoko {
             clMap[minId].insert(clMap[minId].end(),
                 p1->second.begin(), p1->second.end());
           }
-          clMap.erase(p1);
+          p1 = clMap.erase(p1);
         }
       }
     }while(change);
