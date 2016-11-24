@@ -247,7 +247,7 @@ namespace nomoko {
   }
   float Domset::getDistanceMedian(const std::map<size_t,size_t> & xId2vId) {
     std::cout << "Finding Distance Median\n";
-    
+
     if(xId2vId.empty()) {
       std::cerr << "No Views initialized \n";
       exit(0);
@@ -344,117 +344,60 @@ namespace nomoko {
     Eigen::MatrixXf A(numX, numX);
     A.setConstant(0);
 
+    const float minFloat = std::numeric_limits<float>::min();
     for(size_t m=0; m<kNumIter; m++) {
-      //update responsibility
+      // Updating responsibilities
       #if DOMSET_USE_OPENMP
-      #if _OPENMP > 200505 // collapse is only accessible from OpenMP 3.0
-      #pragma omp parallel for collapse(2)
-      #else
       #pragma omp parallel for
       #endif
-      #endif
       for_parallel(i, numX) {
-        for_parallel(k, numX) {
-          float max1 = std::numeric_limits<float>::min();
-          float max2 = std::numeric_limits<float>::min();
+        Eigen::VectorXf old = R.col(i);
+        Eigen::VectorXf RCol = R.col(i);
+        Eigen::VectorXf AS = A.col(i) + S.col(i);
 
-          for(size_t kk=0; kk<k; kk++) {
-            if(S(i,kk) +  A(i,kk) >max1)
-              max1 = S(i,kk) +A(i,kk);
-          }
-          for(size_t kk=k+1; kk<numX; kk++) {
-            if(S(i,kk) +A(i,kk) >max2)
-              max2 = S(i,kk) +A(i,kk);
-          }
-          float max = std::max(max1,max2);
-          R(i,k) = (1-lambda)*(S(i,k) - max) + lambda*R(i,k) ;
-        }
+        Eigen::VectorXf::Index i1;
+        float y1 = AS.maxCoeff(&i1);
+        AS(i1) = minFloat;
+        Eigen::VectorXf::Index i2;
+        float y2 = AS.maxCoeff(&i2);
+
+        RCol      = S.col(i).array() - y1;
+        RCol(i1)  = S(i1, i) - y2;
+        #pragma omp critical(RColUpdate)
+        R.col(i)  = (RCol.array() * (1-lambda)) + (old.array() * lambda);
       }
 
       //update availability
       #if DOMSET_USE_OPENMP
-      #if _OPENMP > 200505 // collapse is only accessible from OpenMP 3.0
-      #pragma omp parallel for collapse(2)
-      #else
       #pragma omp parallel for
       #endif
-      #endif
       for_parallel(i, numX) {
-        for_parallel(k, numX) {
-          if(i==k) continue;
-          const size_t maxik = std::max(i, k);
-          const size_t minik = std::min(i, k);
-          float sum1 = 0.0f;
-          float sum2 = 0.0f;
-          float sum3 = 0.0f;
-          float r1, r2, r3;
-          for(size_t ii=0; ii<minik; ii++) {
-            r1 = R(ii,k);
-            //sum1 += std::max(0.0f, r1);
-            if(r1 > 0.0f)
-              sum1 += r1;
-          }
-          for(size_t ii=minik+1; ii<maxik; ii++) {
-            r2 = R(ii,k);
-            // sum2 += std::max(0.0f, r2);
-            if(r2 > 0.0f)
-              sum2 += r2;
-          }
-          for(size_t ii=maxik+1; ii<numX; ii++) {
-            r3 = R(ii,k);
-            // sum3 += std::max(0.0f, r3);
-            if(r3 > 0.0f)
-              sum3 += r3;
-          }
-          const float r = R(k,k) + sum1 + sum2 + sum3;
-          A(i,k) = (1-lambda)*std::min(0.0f, r) + lambda*A(i,k);
-        }
+        Eigen::VectorXf old = A.col(i);
+        Eigen::VectorXf ACol = A.col(i);
+        Eigen::VectorXf Rp= (R.col(i).array() > 0).select(R.col(i), 0);
+        Rp(i) = R(i,i);
+        ACol = Rp.sum() - Rp.array();
+        ACol = (ACol.array() < 0).select(ACol, 0);
+        ACol(i) = old(i);
+        A.col(i) = (ACol.array() * (1-lambda)) + (old.array() * lambda);
+
       }
-    }
-    #if DOMSET_USE_OPENMP
-    #pragma omp parallel for
-    #endif
-    for_parallel(i, numX) {
-      float sum1 = 0.0f;
-      float sum2 = 0.0f;
-      float r1, r2;
-      for(size_t ii=0; ii<i; ii++) {
-        r1 = R(ii,i);
-        //sum1 += std::max(0.0f, r1);
-        if(r1 > 0.0f)
-          sum1 += r1;
-      }
-      for(size_t ii=i+1; ii<numX; ii++) {
-        r2 = R(ii,i);
-        //sum2 += std::max(0.0f, r2);
-        if(r2 > 0.0f)
-          sum2 += r2;
-      }
-      A(i,i) = (1-lambda)*(sum1+sum2) + lambda*A(i,i);
     }
 
-    //find the exemplar
-    Eigen::MatrixXf E(numX, numX);
-    E = R + A;
+    Eigen::VectorXf E = (A.diagonal() + R.diagonal());
+    E = (E.array() > 0).select(E, 0);
 
     // getting initial clusters
     std::set<size_t > centers;
-    std::map<size_t, std::vector<size_t>> clMap;
-    size_t idxForI = 0;
-    for(size_t i=0; i<numX; i++) {
-      float maxSim = std::numeric_limits<float>::min();
-      for(size_t j=0; j<numX; j++) {
-        if (E(i,j)>maxSim) {
-          maxSim = E(i,j);
-          idxForI = j;
-        }
-      }
-      centers.insert(idxForI);
+    for (size_t i = 0; i < numX; i++) {
+      if(E(i) != 0) centers.insert(i);
     }
 
+    std::map<size_t, std::vector<size_t>> clMap;
     for(auto const c : centers)
       clMap[c] = std::vector<size_t>();
 
+    size_t idxForI = 0;
     for(size_t i = 0; i < numX; i++ ) {
       float maxSim = std::numeric_limits<float>::min();
       for(auto const c : centers) {
