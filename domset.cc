@@ -346,41 +346,57 @@ namespace nomoko {
 
     const float minFloat = std::numeric_limits<float>::min();
     for(size_t m=0; m<kNumIter; m++) {
-      // Updating responsibilities
+      // compute responsibilities
+      Eigen::MatrixXf Rold = R;
+      Eigen::MatrixXf AS = A + S;
+      std::vector<size_t> I(numX);
+      Eigen::VectorXf Y(numX);
       #if DOMSET_USE_OPENMP
       #pragma omp parallel for
       #endif
-      for_parallel(i, numX) {
-        Eigen::VectorXf old = R.col(i);
-        Eigen::VectorXf RCol = R.col(i);
-        Eigen::VectorXf AS = A.col(i) + S.col(i);
-
-        Eigen::VectorXf::Index i1;
-        float y1 = AS.maxCoeff(&i1);
-        AS(i1) = minFloat;
-        Eigen::VectorXf::Index i2;
-        float y2 = AS.maxCoeff(&i2);
-
-        RCol      = S.col(i).array() - y1;
-        RCol(i1)  = S(i1, i) - y2;
-        #pragma omp critical(RColUpdate)
-        R.col(i)  = (RCol.array() * (1-lambda)) + (old.array() * lambda);
+      for(size_t i = 0; i < numX; i++) {
+        Y(i) = AS.row(i).maxCoeff(&I[i]);
+        AS(i, I[i]) = minFloat;
       }
 
-      //update availability
+      std::vector<size_t> I2(numX);
+      Eigen::VectorXf Y2(numX);
       #if DOMSET_USE_OPENMP
       #pragma omp parallel for
       #endif
-      for_parallel(i, numX) {
-        Eigen::VectorXf old = A.col(i);
-        Eigen::VectorXf ACol = A.col(i);
-        Eigen::VectorXf Rp= (R.col(i).array() > 0).select(R.col(i), 0);
-        Rp(i) = R(i,i);
-        ACol = Rp.sum() - Rp.array();
-        ACol = (ACol.array() < 0).select(ACol, 0);
-        ACol(i) = old(i);
-        A.col(i) = (ACol.array() * (1-lambda)) + (old.array() * lambda);
+      for(size_t i = 0; i < numX; i++) {
+        Y2(i) = AS.row(i).maxCoeff(&I2[i]);
       }
+
+      R = S - Y.replicate(1,numX);
+      for(size_t i = 0; i < numX; i++) R(i,I[i]) = S(i,I[i]) - Y2(i);
+      R = ((1-lambda) * R.array()) + (lambda * Rold.array());
+
+      // compute responsibilities
+      Eigen::MatrixXf Aold = A;
+
+      Eigen::MatrixXf Rp = (R.array() > 0).select(R, 0);
+      #if DOMSET_USE_OPENMP
+      #pragma omp parallel for
+      #endif
+      for(size_t i = 0; i < numX; i++) {
+        Rp(i,i) = R(i,i);
+      }
+
+      Eigen::VectorXf sumRp = Rp.colwise().sum();
+
+      A = sumRp.transpose().replicate(numX, 1) - Rp;
+      Eigen::VectorXf dA = A.diagonal();
+
+      A = (A.array() < 0).select(A, 0);
+      #if DOMSET_USE_OPENMP
+      #pragma omp parallel for
+      #endif
+      for(size_t i = 0; i < numX; i++) {
+        A(i,i) = dA(i);
+      }
+
+      A = ((1-lambda) * A.array()) + (lambda * Aold.array());
     }
 
     Eigen::VectorXf E = (A.diagonal() + R.diagonal());
@@ -390,14 +406,13 @@ namespace nomoko {
     std::set<size_t > centers;
     std::map<size_t, std::vector<size_t>> clMap;
     for (size_t i = 0; i < numX; i++) {
-      if(E(i) != 0) {
+      if(E(i) > 0) {
         centers.insert(i);
         clMap[i] = std::vector<size_t>();
       }
     }
 
     std::cerr << centers.size() << " centers" << std::endl;
-    std::cerr << E.transpose() << std::endl;
 
     size_t idxForI = 0;
     for(size_t i = 0; i < numX; i++ ) {
@@ -433,8 +448,8 @@ namespace nomoko {
             change = true;
             clMap[minId].insert(clMap[minId].end(),
                 p1->second.begin(), p1->second.end());
+            p1 = clMap.erase(p1);
           }
-          p1 = clMap.erase(p1);
         }
       }
     }while(change);
