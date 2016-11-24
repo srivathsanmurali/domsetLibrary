@@ -380,7 +380,6 @@ namespace nomoko {
         ACol = (ACol.array() < 0).select(ACol, 0);
         ACol(i) = old(i);
         A.col(i) = (ACol.array() * (1-lambda)) + (old.array() * lambda);
-
       }
     }
 
@@ -389,13 +388,13 @@ namespace nomoko {
 
     // getting initial clusters
     std::set<size_t > centers;
-    for (size_t i = 0; i < numX; i++) {
-      if(E(i) != 0) centers.insert(i);
-    }
-
     std::map<size_t, std::vector<size_t>> clMap;
-    for(auto const c : centers)
-      clMap[c] = std::vector<size_t>();
+    for (size_t i = 0; i < numX; i++) {
+      if(E(i) != 0) {
+        centers.insert(i);
+        clMap[i] = std::vector<size_t>();
+      }
+    }
 
     size_t idxForI = 0;
     for(size_t i = 0; i < numX; i++ ) {
