@@ -396,6 +396,9 @@ namespace nomoko {
       }
     }
 
+    std::cerr << centers.size() << " centers" << std::endl;
+    std::cerr << E.transpose() << std::endl;
+
     size_t idxForI = 0;
     for(size_t i = 0; i < numX; i++ ) {
       float maxSim = std::numeric_limits<float>::min();
