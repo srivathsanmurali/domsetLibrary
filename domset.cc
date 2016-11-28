@@ -85,6 +85,14 @@ namespace nomoko {
       points[i].pos = (points[i].pos / normScale) + pcCentre.pos;
     }
 
+    const size_t numOldPoints (origPoints.size());
+    #if DOMSET_USE_OPENMP
+    #pragma omp parallel for
+    #endif
+    for_parallel(i, numOldPoints) {
+      origPoints[i].pos = (origPoints[i].pos / normScale) + pcCentre.pos;
+    }
+
     // denormalizing camera centers
     const size_t numViews(views.size());
     #if DOMSET_USE_OPENMP
@@ -449,10 +457,11 @@ namespace nomoko {
       }
     };
 
-    // enforcing min size constraints
     bool change = false;
     do{
       change = false;
+
+      // enforcing min size constraints
       for(auto p1 = clMap.begin(); p1 != clMap.end(); ++p1) {
         if(p1->second.size() < kMinClusterSize) {
           float minDist = std::numeric_limits<float>::max();
@@ -475,8 +484,8 @@ namespace nomoko {
           }
         }
       }
+
       // enforcing max size constraints
-      // adding it to clusters vector
       for(auto p = clMap.begin(); p != clMap.end(); ++p) {
         std::vector<size_t> cl = p->second;
         if(cl.size() > kMaxClusterSize) {
@@ -497,7 +506,7 @@ namespace nomoko {
       }
     }while(change);
 
-
+    // adding it to clusters vector
     for(auto p = clMap.begin(); p != clMap.end(); ++p) {
       std::vector<size_t> cl;
       for(const auto i : p->second){
