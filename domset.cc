@@ -426,6 +426,29 @@ namespace nomoko {
       clMap[idxForI].push_back(i);
     }
 
+    auto findCenter = [&](const std::vector<size_t>& cl) {
+      std::vector<float> eValues;
+      size_t i = numX;
+      float maxValve = -1;
+      for(size_t j : cl) {
+        if(maxValve < E(j)) {
+          maxValve = E(j);
+          i = j;
+        }
+      }
+      return (maxValve < 0)? cl[0]: i;
+    };
+    auto addToNewClMap =
+    [](std::map<size_t,std::vector<size_t>>& map
+                ,const std::vector<size_t>& cl, const size_t& center) {
+      if(map.find(center) == map.end()) {
+        map[center] = cl;
+      } else {
+        map.at(center).insert(
+            map.at(center).end(), cl.begin(), cl.end());
+      }
+    };
+
     // enforcing min size constraints
     bool change = false;
     do{
@@ -452,40 +475,35 @@ namespace nomoko {
           }
         }
       }
+      // enforcing max size constraints
+      // adding it to clusters vector
+      for(auto p = clMap.begin(); p != clMap.end(); ++p) {
+        std::vector<size_t> cl = p->second;
+        if(cl.size() > kMaxClusterSize) {
+          p = clMap.erase(p);
+          change = true;
+          auto it = cl.begin();
+          auto stop = it + kMaxClusterSize;
+          while(it < cl.end()) {
+            auto tmp = std::vector<size_t>(it, stop);
+            std::sort(tmp.begin(), tmp.end());
+            auto center = findCenter(tmp);
+            addToNewClMap(clMap, tmp, center);
+            it = stop;
+            stop = it + kMaxClusterSize;
+            stop = (stop > cl.end())? cl.end() : stop;
+          }
+        }
+      }
     }while(change);
 
-    // enforcing max size constraints
-    // adding it to clusters vector
+
     for(auto p = clMap.begin(); p != clMap.end(); ++p) {
       std::vector<size_t> cl;
       for(const auto i : p->second){
         cl.push_back(xId2vId[i]);
       }
-      if(cl.size() > kMaxClusterSize) {
-        // std::cout << "split " << p.first << " | " << p.second.size() << std::endl;
-        auto it = cl.begin();
-        while(true) {
-          auto stop = it + kMaxClusterSize;
-          if(stop < cl.end()) {
-            auto tmp = std::vector<size_t>(it, stop);
-            it = stop;
-            std::sort(tmp.begin(), tmp.end());
-            clusters.push_back(tmp);
-          } else {
-            std::vector<size_t> tmp;
-            while(it < cl.end()) {
-              tmp.push_back(*it);
-              it++;
-            }
-            std::sort(tmp.begin(), tmp.end());
-            clusters.push_back(tmp);
-            break;
-          }
-        }
-      }else {
-        std::sort(cl.begin(), cl.end());
-        clusters.push_back(cl);
-      }
+      clusters.push_back(cl);
     }
   }
 
