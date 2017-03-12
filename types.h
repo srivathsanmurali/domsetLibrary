@@ -1,28 +1,9 @@
-/**
- *             __________
- *            / ________ .
- *           / / ______ . .
- *          / / /      . . .
- *         / / /        . . .
- *         . . .        / / /
- *          . . .______/ / /
- *           . .________/ /
- *            .__________/
- *
- *              nomoko AG
- *          www.nomoko.camera
- *
- *        Röschibachstrasse 24
- *           CH-8037 Zurich
- *            Switzerland
- *
- * @endcond
- * @file        types.h
- * @brief       Provides types for camera, view and point information.
- * @author      Srivathsan Murali<srivathsan@nomoko.camera>
- * @copyright   MIT
- */
-// Chuck Norris programs do not accept input.
+// This file is part of OpenMVG (Open Multiple View Geometry) C++ library.
+// Copyright (c) 2016 nomoko AG, Srivathsan Murali<srivathsan@nomoko.camera>
+
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #ifndef _NOMOKO_TYPES_H_
 #define _NOMOKO_TYPES_H_

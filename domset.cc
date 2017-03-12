@@ -1,3 +1,10 @@
+// This file is part of OpenMVG (Open Multiple View Geometry) C++ library.
+// Copyright (c) 2016 nomoko AG, Srivathsan Murali<srivathsan@nomoko.camera>
+
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 #include "domset.h"
 #if DOMSET_USE_OPENMP
 #include <omp.h>
