@@ -33,7 +33,7 @@ namespace nomoko {
     my_kd_tree_t index(3, *this, KDTreeSingleIndexAdaptorParams(10));
     index.buildIndex();
 
-    const size_t numResults(1);
+    constexpr size_t numResults(1);
     const size_t numPoints (points.size());
     float totalDist = 0;
     pcCentre.pos << 0, 0, 0;
@@ -120,8 +120,8 @@ namespace nomoko {
     Point maxPt;
     const size_t numP = points.size();
     // finding the min and max values for the 3 dimensions
-    const float mi = std::numeric_limits<float>::min();
-    const float ma = std::numeric_limits<float>::max();
+    constexpr float mi = std::numeric_limits<float>::min();
+    constexpr float ma = std::numeric_limits<float>::max();
     minPt.pos << ma, ma, ma;
     maxPt.pos << mi, mi, mi;
 
@@ -212,7 +212,7 @@ namespace nomoko {
     std::cerr << "New points = " << newPoints.size() << std::endl;
     origPoints.clear();
     points.swap(origPoints);
-    points.swap(newPoints);
+    points = std::move(newPoints);
     std::cerr << "Number of points = " << points.size() << std::endl;
   } // voxelGridFilter
 
@@ -359,7 +359,7 @@ namespace nomoko {
     Eigen::MatrixXf A(numX, numX);
     A.setConstant(0);
 
-    const float minFloat = std::numeric_limits<float>::min();
+    constexpr float minFloat = std::numeric_limits<float>::min();
     for(size_t m=0; m<kNumIter; m++) {
       // compute responsibilities
       Eigen::MatrixXf Rold = R;
