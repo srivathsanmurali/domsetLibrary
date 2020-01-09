@@ -57,7 +57,7 @@ int main() {
 * [Nanoflann] (https://github.com/jlblancoc/nanoflann) (internal)
 
 ## Examples
-The clustering was tested on the fraumunster dataset from CVL ETHZ ([dataset] (http://www.vision.ee.ethz.ch/~rhayko//paper/bmvc2013_mauro_view_clustering/pix/bmvc2013_view_clustering_fraumunster.zip)).
+The clustering was tested on the fraumunster dataset from CVL ETHZ ([dataset] (https://people.ee.ethz.ch/~rhayko/paper/bmvc2013_mauro_view_clustering/pix/bmvc2013_view_clustering_fraumunster.zip)).
 
 ### Output from OpenMVG
 ![SFM Output](exampleImages/fraumunster00.png)
