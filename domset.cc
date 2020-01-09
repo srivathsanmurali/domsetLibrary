@@ -434,7 +434,7 @@ namespace nomoko {
       float maxSim = std::numeric_limits<float>::min();
       for(auto const c : centers) {
         if( S(i,c) > maxSim){
-          idxForI = i;
+          idxForI = c;
           maxSim = S(i,c);
         }
       }
